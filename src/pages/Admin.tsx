@@ -16,7 +16,7 @@ function ProjectForm({ onSubmit, onCancel }: { onSubmit: (data: Omit<Project, 'i
   const [endYear, setEndYear] = useState(currentYear + 4);
   const inputCls = "w-full border border-gray-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:border-bp-secondary";
 
-  const yearOptions = Array.from({ length: 21 }, (_, i) => currentYear - 5 + i);
+  const yearOptions = Array.from({ length: currentYear - 2019 + 16 }, (_, i) => 2019 + i);
 
   const handleSubmit = () => {
     if (!name) return;
