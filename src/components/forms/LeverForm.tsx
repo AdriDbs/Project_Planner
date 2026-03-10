@@ -309,11 +309,11 @@ export function LeverForm({ projectId, onSubmit, onCancel, initialData }: Props)
         <div className="grid grid-cols-2 gap-4">
           <div>
             <label className={labelCls}>Date début implémentation</label>
-            <input type="date" {...register('implementationStart')} className={inputCls} />
+            <input type="date" min="2019-01-01" {...register('implementationStart')} className={inputCls} />
           </div>
           <div>
             <label className={labelCls}>Date fin implémentation</label>
-            <input type="date" {...register('implementationEnd')} className={inputCls} />
+            <input type="date" min="2019-01-01" {...register('implementationEnd')} className={inputCls} />
           </div>
           <div>
             <label className={labelCls}>Durée projet (mois)</label>
