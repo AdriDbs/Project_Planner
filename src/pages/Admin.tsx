@@ -11,7 +11,18 @@ function ProjectForm({ onSubmit, onCancel }: { onSubmit: (data: Omit<Project, 'i
   const [name, setName] = useState('');
   const [client, setClient] = useState('BearingPoint');
   const [currency, setCurrency] = useState('EUR');
+  const currentYear = new Date().getFullYear();
+  const [startYear, setStartYear] = useState(currentYear);
+  const [endYear, setEndYear] = useState(currentYear + 4);
   const inputCls = "w-full border border-gray-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:border-bp-secondary";
+
+  const yearOptions = Array.from({ length: 21 }, (_, i) => currentYear - 5 + i);
+
+  const handleSubmit = () => {
+    if (!name) return;
+    const years = Array.from({ length: endYear - startYear + 1 }, (_, i) => startYear + i);
+    onSubmit({ name, client, currency, years });
+  };
 
   return (
     <div className="space-y-4">
@@ -23,9 +34,22 @@ function ProjectForm({ onSubmit, onCancel }: { onSubmit: (data: Omit<Project, 'i
         <select value={currency} onChange={e => setCurrency(e.target.value)} className={inputCls + ' bg-white'}>
           <option>EUR</option><option>USD</option><option>GBP</option><option>CHF</option>
         </select></div>
+      <div className="grid grid-cols-2 gap-3">
+        <div><label className="block text-xs font-medium text-gray-600 mb-1">Année de début *</label>
+          <select value={startYear} onChange={e => { const y = +e.target.value; setStartYear(y); if (y > endYear) setEndYear(y); }} className={inputCls + ' bg-white'}>
+            {yearOptions.map(y => <option key={y} value={y}>{y}</option>)}
+          </select></div>
+        <div><label className="block text-xs font-medium text-gray-600 mb-1">Année de fin *</label>
+          <select value={endYear} onChange={e => { const y = +e.target.value; setEndYear(y); if (y < startYear) setStartYear(y); }} className={inputCls + ' bg-white'}>
+            {yearOptions.map(y => <option key={y} value={y}>{y}</option>)}
+          </select></div>
+      </div>
+      {startYear <= endYear && (
+        <p className="text-xs text-gray-400">Années couvertes : {Array.from({ length: endYear - startYear + 1 }, (_, i) => startYear + i).join(', ')}</p>
+      )}
       <div className="flex gap-3 pt-2">
         <button onClick={onCancel} className="btn-ghost flex-1">Annuler</button>
-        <button onClick={() => name && onSubmit({ name, client, currency, years: [2024, 2025, 2026, 2027, 2028] })} className="btn-primary flex-1">
+        <button onClick={handleSubmit} className="btn-primary flex-1">
           Créer le projet
         </button>
       </div>
