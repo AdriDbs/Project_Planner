@@ -11,6 +11,7 @@ import { OrganizationPage } from './pages/Organization';
 import { CapexOpexPage } from './pages/CapexOpex';
 import { OutOfScopePage } from './pages/OutOfScope';
 import { AdminPage } from './pages/Admin';
+import { LeverLibraryPage } from './pages/LeverLibrary';
 
 function App() {
   return (
@@ -29,6 +30,7 @@ function App() {
               <Route path="/organization" element={<OrganizationPage />} />
               <Route path="/capex-opex" element={<CapexOpexPage />} />
               <Route path="/out-of-scope" element={<OutOfScopePage />} />
+              <Route path="/admin/library" element={<LeverLibraryPage />} />
               <Route path="/admin" element={<AdminPage />} />
             </Routes>
           </div>
