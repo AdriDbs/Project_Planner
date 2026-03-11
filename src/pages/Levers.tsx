@@ -565,9 +565,9 @@ export function LeversPage() {
             projectLevers={levers}
             plants={plants}
             onClose={() => setImportLibraryOpen(false)}
-            onImport={(libId, plId) =>
-              instantiateInProject(libId, selectedProjectId, plId)
-            }
+            onImport={async (libId, plId) => {
+              await instantiateInProject(libId, selectedProjectId, plId);
+            }}
           />
         </Modal>
       )}
