@@ -3,7 +3,7 @@ import { NavLink } from 'react-router-dom';
 import {
   LayoutDashboard, Database, Sliders, BarChart3,
   TrendingUp, Users, DollarSign, Settings, FileX, ChevronRight, Library,
-  FileSpreadsheet, Presentation
+  FileSpreadsheet, Presentation, HelpCircle
 } from 'lucide-react';
 import { Modal } from '../ui/Modal';
 import { WorkshopLauncher } from '../workshop/WorkshopLauncher';
@@ -26,7 +26,7 @@ const navItems = [
 
 export function Sidebar() {
   const [workshopOpen, setWorkshopOpen] = useState(false);
-  const { selectedProjectId } = useProjectStore();
+  const { selectedProjectId, startTutorial } = useProjectStore();
   const { projects } = useProjects();
   const { plants } = usePlants(selectedProjectId);
 
@@ -81,6 +81,16 @@ export function Sidebar() {
             </NavLink>
           ))}
         </nav>
+
+        {/* Tutorial launcher */}
+        <button
+          onClick={startTutorial}
+          className="mx-3 mb-2 flex items-center gap-2 px-3 py-2 rounded-lg text-white/50 hover:text-white hover:bg-white/10 transition-colors text-sm w-auto"
+          title="Lancer le tutoriel interactif"
+        >
+          <HelpCircle size={16} />
+          <span>Tutoriel guidé</span>
+        </button>
 
         {/* Footer */}
         <div className="px-6 py-4 border-t border-white/10">
