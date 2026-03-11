@@ -179,7 +179,7 @@ export function Phase1_Context({ session, levers, baselines, plants, onUpdateSes
                     ))}
                   </Pie>
                   <Tooltip
-                    formatter={(value: number) => [`${(value / 1_000_000).toFixed(1)}M€`, '']}
+                    formatter={(value: number | undefined) => value != null ? [`${(value / 1_000_000).toFixed(1)}M€`, ''] : ['-', '']}
                     contentStyle={{ background: '#1e293b', border: 'none', borderRadius: 8, color: '#fff', fontSize: 12 }}
                   />
                 </PieChart>

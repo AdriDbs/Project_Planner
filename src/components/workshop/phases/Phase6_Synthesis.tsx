@@ -184,16 +184,18 @@ export function Phase6_Synthesis({
         await addToLibrary({
           leverId: `WS-${lever.id.slice(0, 8)}`,
           title: lever.title,
+          platform: '',
+          source: 'On-site Workshop',
           improvementStructure: lever.improvementStructure as any,
-          leverType: lever.leverType as any || 'Operational Basics',
+          leverType: (lever.leverType || 'Operational Basics') as any,
+          digitalizationMechanization: 'Other Lever Type' as any,
           department: lever.department,
-          description: lever.context || '',
-          netSavingsEUR: lever.estimatedAnnualSavings,
-          capexEUR: lever.estimatedCapex,
-          payback: lever.estimatedCapex > 0
+          referenceNetSavingsEUR: lever.estimatedAnnualSavings,
+          referenceCapexEUR: lever.estimatedCapex,
+          referencePayback: lever.estimatedCapex > 0
             ? lever.estimatedCapex / lever.estimatedAnnualSavings
             : 0,
-          fte: 0,
+          referenceFTE: 0,
           benefits: 3,
           feasibility: 3,
           tags: ['On-site Workshop'],
@@ -271,7 +273,7 @@ export function Phase6_Synthesis({
                     <XAxis type="number" tickFormatter={v => `${v}k€`} tick={{ fill: 'rgba(255,255,255,0.6)', fontSize: 10 }} />
                     <YAxis type="category" dataKey="name" tick={{ fill: 'rgba(255,255,255,0.8)', fontSize: 11 }} width={55} />
                     <Tooltip
-                      formatter={(v: number) => [`${v}k€`, '']}
+                      formatter={(v: number | undefined) => v != null ? [`${v}k€`, ''] : ['-', '']}
                       contentStyle={{ background: '#1e3a5f', border: 'none', borderRadius: 8, color: '#fff', fontSize: 11 }}
                     />
                     <Legend wrapperStyle={{ color: 'rgba(255,255,255,0.7)', fontSize: 11 }} />

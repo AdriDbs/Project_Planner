@@ -60,7 +60,7 @@ export function useWorkshopSession(projectId: string | null) {
     return unsub;
   }, [projectId]);
 
-  const createSession = useCallback(async (data: Omit<WorkshopSession, 'id' | 'decisions' | 'newLevers' | 'clientPriorities' | 'keyConstraints' | 'agreedScope' | 'startedAt' | 'completedAt' | 'status' | 'currentPhase'>) => {
+  const createSession = useCallback(async (data: Omit<WorkshopSession, 'id' | 'projectId' | 'decisions' | 'newLevers' | 'clientPriorities' | 'keyConstraints' | 'agreedScope' | 'startedAt' | 'completedAt' | 'status' | 'currentPhase'>) => {
     if (!projectId) throw new Error('No project selected');
     setLoading(true);
     try {
