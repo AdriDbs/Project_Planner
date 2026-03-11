@@ -22,6 +22,8 @@ export interface Lever {
   id: string;
   projectId: string;
   plantId: string;
+  libraryLeverId: string | null;  // référence vers leverLibrary (null si créé from scratch)
+  isFromLibrary: boolean;         // true si instancié depuis la bibliothèque
   leverId: string;
   platform: string;
   department: string;
