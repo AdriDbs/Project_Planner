@@ -2,7 +2,8 @@ import React from 'react';
 import { NavLink } from 'react-router-dom';
 import {
   LayoutDashboard, Database, Sliders, BarChart3,
-  TrendingUp, Users, DollarSign, Settings, FileX, ChevronRight, Library
+  TrendingUp, Users, DollarSign, Settings, FileX, ChevronRight, Library,
+  FileSpreadsheet
 } from 'lucide-react';
 
 const navItems = [
@@ -14,6 +15,7 @@ const navItems = [
   { to: '/organization', icon: Users, label: 'Organisation FTE' },
   { to: '/capex-opex', icon: DollarSign, label: 'CAPEX & OPEX' },
   { to: '/out-of-scope', icon: FileX, label: 'Out of Scope' },
+  { to: '/export', icon: FileSpreadsheet, label: 'Export Excel' },
   { to: '/admin/library', icon: Library, label: 'Bibliothèque' },
   { to: '/admin', icon: Settings, label: 'Administration' },
 ];
