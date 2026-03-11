@@ -216,7 +216,7 @@ Leviers en débat à escalader : ${debated}`;
                 <XAxis dataKey="quarter" hide />
                 <YAxis hide />
                 <Tooltip
-                  formatter={(v: number) => [`${v}k€`, 'Savings cumulés']}
+                  formatter={(v: number | undefined) => v != null ? [`${v}k€`, 'Savings cumulés'] : ['-', 'Savings cumulés']}
                   contentStyle={{ fontSize: 11, background: '#fff', border: '1px solid #e5e7eb', borderRadius: 8 }}
                 />
                 <Area

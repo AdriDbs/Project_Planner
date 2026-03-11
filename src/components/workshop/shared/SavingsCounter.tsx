@@ -1,29 +1,26 @@
-import React from 'react';
-import { motion, useSpring, useTransform } from 'framer-motion';
+import React, { useState, useEffect } from 'react';
+import { motion, animate } from 'framer-motion';
 import type { ComputedSavings, WorkshopParticipant } from '../../../types/workshop';
 
 interface AnimatedValueProps {
   value: number;
   decimals?: number;
-  suffix?: string;
 }
 
-function AnimatedValue({ value, decimals = 1, suffix = '' }: AnimatedValueProps) {
-  const spring = useSpring(value, { stiffness: 100, damping: 30 });
-  const display = useTransform(spring, (v) =>
-    (v / 1_000_000).toFixed(decimals)
-  );
+function AnimatedValue({ value, decimals = 1 }: AnimatedValueProps) {
+  const [display, setDisplay] = useState(value);
 
-  React.useEffect(() => {
-    spring.set(value);
-  }, [value, spring]);
+  useEffect(() => {
+    const controls = animate(display, value, {
+      duration: 0.6,
+      ease: 'easeOut',
+      onUpdate: (latest) => setDisplay(latest),
+    });
+    return controls.stop;
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [value]);
 
-  return (
-    <motion.span>
-      {display}
-      {suffix}
-    </motion.span>
-  );
+  return <span>{(display / 1_000_000).toFixed(decimals)}</span>;
 }
 
 interface SavingsCounterProps {
