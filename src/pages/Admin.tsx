@@ -1,7 +1,7 @@
-import React, { useState, useEffect } from 'react';
-import { Plus, Trash2, Building2, FolderOpen, BookOpen, ArrowUpRight } from 'lucide-react';
+import React, { useState, useEffect, useCallback } from 'react';
+import { Plus, Trash2, Building2, FolderOpen, BookOpen, ArrowUpRight, Presentation, Eye, Archive, RotateCcw, Download } from 'lucide-react';
 import toast from 'react-hot-toast';
-import { collection, query, where, getDocs } from 'firebase/firestore';
+import { collection, query, where, getDocs, doc, updateDoc } from 'firebase/firestore';
 import { db } from '../lib/firebase';
 import { PageWrapper } from '../components/layout/PageWrapper';
 import { Modal } from '../components/ui/Modal';
@@ -11,6 +11,7 @@ import { useLeverLibrary } from '../hooks/useLeverLibrary';
 import { migrateExistingLeversToLibrary } from '../lib/migrations';
 import type { Project, Plant } from '../types/project';
 import type { Lever } from '../types/lever';
+import type { WorkshopSession } from '../types/workshop';
 
 function ProjectForm({ onSubmit, onCancel }: { onSubmit: (data: Omit<Project, 'id' | 'createdAt'>) => void; onCancel: () => void }) {
   const [name, setName] = useState('');
@@ -207,6 +208,127 @@ function ExportToLibraryModal({ project, onClose }: ExportToLibraryModalProps) {
   );
 }
 
+// ─── Workshops Tab ────────────────────────────────────────────────────────────
+
+function WorkshopsTab({ projects }: { projects: Project[] }) {
+  const [sessions, setSessions] = useState<WorkshopSession[]>([]);
+  const [loading, setLoading] = useState(true);
+
+  const loadSessions = useCallback(async () => {
+    setLoading(true);
+    try {
+      const snap = await getDocs(collection(db, 'workshops'));
+      setSessions(snap.docs.map(d => ({ id: d.id, ...d.data() } as WorkshopSession)));
+    } finally {
+      setLoading(false);
+    }
+  }, []);
+
+  useEffect(() => { loadSessions(); }, [loadSessions]);
+
+  const handleArchive = async (session: WorkshopSession) => {
+    if (!confirm('Archiver cette session ?')) return;
+    await updateDoc(doc(db, 'workshops', session.id), { status: 'archived' });
+    loadSessions();
+    toast.success('Session archivée');
+  };
+
+  const STATUS_BADGE: Record<WorkshopSession['status'], { label: string; cls: string }> = {
+    active: { label: '🔵 Actif', cls: 'bg-blue-100 text-blue-700' },
+    paused: { label: '🟡 En pause', cls: 'bg-yellow-100 text-yellow-700' },
+    completed: { label: '🟢 Complété', cls: 'bg-green-100 text-green-700' },
+    archived: { label: '⚫ Archivé', cls: 'bg-gray-100 text-gray-600' },
+  };
+
+  if (loading) {
+    return <div className="px-6 py-8 text-gray-400 text-sm">Chargement des sessions...</div>;
+  }
+
+  return (
+    <div>
+      <table className="w-full text-sm">
+        <thead className="bg-gray-50 border-b border-gray-200">
+          <tr>
+            <th className="text-left px-6 py-3 font-medium text-gray-600">Date</th>
+            <th className="text-left px-6 py-3 font-medium text-gray-600">Client / Projet</th>
+            <th className="text-left px-6 py-3 font-medium text-gray-600">Facilitateur</th>
+            <th className="text-left px-6 py-3 font-medium text-gray-600">Participants</th>
+            <th className="text-right px-6 py-3 font-medium text-gray-600">Leviers biblio.</th>
+            <th className="text-right px-6 py-3 font-medium text-gray-600">Leviers terrain 🆕</th>
+            <th className="text-right px-6 py-3 font-medium text-gray-600">Savings validés</th>
+            <th className="text-left px-6 py-3 font-medium text-gray-600">Statut</th>
+            <th className="px-6 py-3 font-medium text-gray-600 text-right">Actions</th>
+          </tr>
+        </thead>
+        <tbody>
+          {sessions.map((session, i) => {
+            const projectName = projects.find(p => p.id === session.projectId)?.name ?? '—';
+            const validatedCount = Object.values(session.decisions ?? {}).filter(d => d.status === 'validated').length;
+            const terrainCount = session.newLevers?.length ?? 0;
+            const badge = STATUS_BADGE[session.status] ?? STATUS_BADGE.archived;
+
+            const totalSavings = Object.values(session.decisions ?? {})
+              .filter(d => d.status === 'validated')
+              .reduce((s, d) => s + (d.clientSavingsEstimate && d.useClientEstimate ? d.clientSavingsEstimate : 0), 0);
+
+            return (
+              <tr key={session.id} className={i % 2 === 0 ? 'bg-white' : 'bg-gray-50/50'}>
+                <td className="px-6 py-3 text-gray-600 text-xs">
+                  {new Date(session.workshopDate ?? session.startedAt).toLocaleDateString('fr-FR')}
+                </td>
+                <td className="px-6 py-3">
+                  <div className="font-medium text-bp-primary">{session.clientName}</div>
+                  <div className="text-xs text-gray-500">{projectName}</div>
+                </td>
+                <td className="px-6 py-3 text-gray-600">{session.facilitator}</td>
+                <td className="px-6 py-3">
+                  <span className="inline-flex items-center px-2 py-0.5 rounded-full bg-gray-100 text-gray-700 text-xs">
+                    {session.participants?.length ?? 0} pers.
+                  </span>
+                </td>
+                <td className="px-6 py-3 text-right">
+                  <span className="font-medium text-bp-primary">{validatedCount}</span>
+                </td>
+                <td className="px-6 py-3 text-right">
+                  <span className="font-medium text-blue-600">{terrainCount}</span>
+                </td>
+                <td className="px-6 py-3 text-right text-xs text-gray-600">
+                  {totalSavings > 0 ? `${(totalSavings / 1_000_000).toFixed(1)} M€` : '—'}
+                </td>
+                <td className="px-6 py-3">
+                  <span className={`text-xs px-2 py-0.5 rounded-full font-medium ${badge.cls}`}>
+                    {badge.label}
+                  </span>
+                </td>
+                <td className="px-6 py-3 text-right">
+                  <div className="flex items-center justify-end gap-1">
+                    {session.status !== 'archived' && (
+                      <button
+                        onClick={() => handleArchive(session)}
+                        title="Archiver"
+                        className="p-1.5 hover:bg-gray-100 rounded text-gray-400 hover:text-gray-700 transition-colors"
+                      >
+                        <Archive size={13} />
+                      </button>
+                    )}
+                  </div>
+                </td>
+              </tr>
+            );
+          })}
+          {sessions.length === 0 && (
+            <tr>
+              <td colSpan={9} className="px-6 py-8 text-center text-gray-400">
+                Aucune session d'atelier trouvée.
+              </td>
+            </tr>
+          )}
+        </tbody>
+      </table>
+    </div>
+  );
+}
+
 // ─── Page Admin principale ──────────────────────────────────────────────────────
 
 export function AdminPage() {
@@ -214,6 +336,7 @@ export function AdminPage() {
   const { projects, createProject, deleteProject } = useProjects();
   const { plants, createPlant, deletePlant } = usePlants(selectedProjectId);
 
+  const [activeTab, setActiveTab] = useState<'projects' | 'workshops'>('projects');
   const [projectModalOpen, setProjectModalOpen] = useState(false);
   const [plantModalOpen, setPlantModalOpen] = useState(false);
   const [exportModalProject, setExportModalProject] = useState<Project | null>(null);
@@ -291,7 +414,45 @@ export function AdminPage() {
 
   return (
     <PageWrapper>
-      <div className="space-y-6 max-w-5xl">
+      <div className="space-y-6 max-w-6xl">
+        {/* Tab navigation */}
+        <div className="flex gap-1 border-b border-gray-200">
+          <button
+            onClick={() => setActiveTab('projects')}
+            className={`px-4 py-2.5 text-sm font-medium transition-colors border-b-2 -mb-px ${
+              activeTab === 'projects'
+                ? 'border-bp-primary text-bp-primary'
+                : 'border-transparent text-gray-500 hover:text-gray-700'
+            }`}
+          >
+            <FolderOpen size={15} className="inline mr-1.5" />
+            Projets & Usines
+          </button>
+          <button
+            onClick={() => setActiveTab('workshops')}
+            className={`px-4 py-2.5 text-sm font-medium transition-colors border-b-2 -mb-px ${
+              activeTab === 'workshops'
+                ? 'border-bp-primary text-bp-primary'
+                : 'border-transparent text-gray-500 hover:text-gray-700'
+            }`}
+          >
+            <Presentation size={15} className="inline mr-1.5" />
+            Workshops
+          </button>
+        </div>
+
+        {activeTab === 'workshops' && (
+          <div className="card p-0 overflow-hidden">
+            <div className="px-6 py-4 border-b border-gray-100 flex items-center gap-3">
+              <Presentation size={18} className="text-bp-primary" />
+              <h3 className="font-semibold text-gray-800">Sessions d'atelier</h3>
+            </div>
+            <WorkshopsTab projects={projects} />
+          </div>
+        )}
+
+        {activeTab === 'projects' && (
+        <>
         {/* Projects */}
         <div className="card p-0 overflow-hidden">
           <div className="px-6 py-4 border-b border-gray-100 flex items-center justify-between">
@@ -413,6 +574,7 @@ export function AdminPage() {
         {/* Firebase config info */}
         <div className="card bg-bp-primary/5 border-bp-primary/20">
           <h3 className="font-semibold text-bp-primary mb-2">Configuration Firebase</h3>
+
           <p className="text-sm text-gray-600 mb-3">
             Pour connecter cette application à votre propre Firebase, créez un fichier <code className="bg-gray-100 px-1 rounded text-xs">.env.local</code> avec les variables suivantes :
           </p>
@@ -425,6 +587,8 @@ VITE_FIREBASE_MESSAGING_SENDER_ID=123456789
 VITE_FIREBASE_APP_ID=1:123456789:web:abcdef`}
           </pre>
         </div>
+        </>
+        )}
       </div>
 
       <Modal isOpen={projectModalOpen} onClose={() => setProjectModalOpen(false)} title="Nouveau Projet" size="md">
