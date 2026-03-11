@@ -116,7 +116,7 @@ export function AdminPage() {
   };
 
   const handleDeleteProject = async (id: string) => {
-    if (!confirm('Supprimer ce projet ? Cette action est irréversible.')) return;
+    if (!confirm('Supprimer ce projet supprimera définitivement tous ses leviers, baselines et usines associées. Cette action est irréversible.')) return;
     try {
       await deleteProject(id);
       if (selectedProjectId === id) setSelectedProject(null);

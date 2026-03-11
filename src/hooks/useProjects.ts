@@ -1,7 +1,8 @@
 import { useState, useEffect, useCallback } from 'react';
 import {
   collection, query, where, onSnapshot,
-  addDoc, updateDoc, deleteDoc, doc, serverTimestamp
+  addDoc, updateDoc, deleteDoc, doc, serverTimestamp,
+  getDocs, writeBatch
 } from 'firebase/firestore';
 import { db } from '../lib/firebase';
 import type { Project, Plant } from '../types/project';
@@ -35,6 +36,23 @@ export function useProjects() {
   }, []);
 
   const deleteProject = useCallback(async (id: string) => {
+    const collectionsToClean = ['levers', 'baselines', 'plants'];
+
+    for (const col of collectionsToClean) {
+      const q = query(collection(db, col), where('projectId', '==', id));
+      const snap = await getDocs(q);
+
+      const chunks: typeof snap.docs[] = [];
+      for (let i = 0; i < snap.docs.length; i += 500) {
+        chunks.push(snap.docs.slice(i, i + 500));
+      }
+      for (const chunk of chunks) {
+        const batch = writeBatch(db);
+        chunk.forEach(d => batch.delete(d.ref));
+        await batch.commit();
+      }
+    }
+
     await deleteDoc(doc(db, 'projects', id));
   }, []);
 
