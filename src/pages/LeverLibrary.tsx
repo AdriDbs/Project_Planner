@@ -608,9 +608,9 @@ export function LeverLibraryPage() {
           <InstantiateModal
             lever={instantiateTarget}
             onClose={() => setInstantiateTarget(null)}
-            onInstantiate={(pId, plId, overrides) =>
-              instantiateInProject(instantiateTarget.id, pId, plId, overrides)
-            }
+            onInstantiate={async (pId, plId, overrides) => {
+              await instantiateInProject(instantiateTarget.id, pId, plId, overrides);
+            }}
           />
         </Modal>
       )}
