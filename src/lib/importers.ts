@@ -116,11 +116,16 @@ export function parseLeversExcel(
             if (key) savingsByYear[String(y)] = Number(row[key]) || 0;
           });
 
-          const plantName = String(row['Plant'] || '').trim();
+          // Support both 'Plant' (name) and 'Plant ID' (id) column headers.
+          // Try name lookup first; fall back to using the raw value as a plant ID.
+          const plantNameOrId = String(row['Plant'] || row['Plant ID'] || '').trim();
+          const resolvedPlantId = plantMap[plantNameOrId] || plantNameOrId;
 
           return {
             projectId,
-            plantId: plantMap[plantName] || '',
+            plantId: resolvedPlantId,
+            isFromLibrary: false,
+            libraryLeverId: null,
             leverId: String(row['ID'] || ''),
             platform: String(row['Platform'] || ''),
             department: String(row['Department'] || ''),

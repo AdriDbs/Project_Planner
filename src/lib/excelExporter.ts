@@ -187,6 +187,18 @@ function setRowHeight(ws: XLSX.WorkSheet, row: number, height: number): void {
   (ws['!rows'] as Record<string, number>[])[row] = { hpt: height };
 }
 
+function setFormula(
+  ws: XLSX.WorkSheet,
+  row: number,
+  col: number,
+  formula: string,
+  style: XLStyle = S.empty,
+  numFmt?: string,
+): void {
+  const addr = XLSX.utils.encode_cell({ r: row, c: col });
+  ws[addr] = { f: formula, t: 'n', s: style, z: numFmt } as XLSX.CellObject;
+}
+
 function n(val: number | undefined | null): number {
   return val || 0;
 }
@@ -665,12 +677,21 @@ function buildBaselinesSheet(plants: Plant[], baselines: Baseline[]): XLSX.WorkS
   setRowHeight(ws, 1, 22);
 
   // Cost element rows
+  // Row indices (0-based): row = 2 + ei  →  Excel row = 3 + ei
+  // RM(ei=0)=Excel3 … PM_Losses(ei=9)=Excel12
+  // CC elements (DLC..PM_Losses) = ei 2..9 → Excel rows 5..12
+  const lastPlantCol = plants.length > 0 ? XLSX.utils.encode_col(1 + plants.length) : '';
+
   allCostElements.forEach((ce, ei) => {
     const row = 2 + ei;
+    const excelRow = row + 1;
     setVal(ws, row, 0, ceLabels[ce], row % 2 === 0 ? S.rowEven : S.rowOdd);
 
-    const totalVal = baselines.reduce((s, b) => s + n(b.costElements?.[ce]), 0);
-    setVal(ws, row, 1, totalVal, S.rowEvenRight, fmt(0));
+    if (plants.length > 0) {
+      setFormula(ws, row, 1, `SUM(C${excelRow}:${lastPlantCol}${excelRow})`, S.rowEvenRight, fmt(0));
+    } else {
+      setVal(ws, row, 1, 0, S.rowEvenRight, fmt(0));
+    }
 
     plants.forEach((p, pi) => {
       const b = getBaseline(p.id);
@@ -678,28 +699,34 @@ function buildBaselinesSheet(plants: Plant[], baselines: Baseline[]): XLSX.WorkS
     });
   });
 
-  // Total CC row
+  // Total CC row  (CC = DLC..PM_Losses = Excel rows 5..12)
   const ccElements: CostElement[] = ['DLC', 'PILC', 'OVC', 'FC_Personal', 'Maintenance', 'OFC', 'RM_Losses', 'PM_Losses'];
   const totalCCRow = 2 + allCostElements.length;
   setVal(ws, totalCCRow, 0, 'Total CC in k€', S.total);
-  const totalCCAll = baselines.reduce((s, b) => s + ccElements.reduce((ss, ce) => ss + n(b.costElements?.[ce]), 0), 0);
-  setVal(ws, totalCCRow, 1, totalCCAll, S.totalRight, fmt(0));
-  plants.forEach((p, pi) => {
-    const b = getBaseline(p.id);
-    const cc = ccElements.reduce((s, ce) => s + n(b?.costElements?.[ce]), 0);
-    setVal(ws, totalCCRow, 2 + pi, cc, S.totalRight, fmt(0));
-  });
+  if (plants.length > 0) {
+    setFormula(ws, totalCCRow, 1, 'SUM(B5:B12)', S.totalRight, fmt(0));
+    plants.forEach((_p, pi) => {
+      const colLet = XLSX.utils.encode_col(2 + pi);
+      setFormula(ws, totalCCRow, 2 + pi, `SUM(${colLet}5:${colLet}12)`, S.totalRight, fmt(0));
+    });
+  } else {
+    const totalCCAll = baselines.reduce((s, b) => s + ccElements.reduce((ss, ce) => ss + n(b.costElements?.[ce]), 0), 0);
+    setVal(ws, totalCCRow, 1, totalCCAll, S.totalRight, fmt(0));
+  }
 
-  // Total Costs row
+  // Total Costs row  (all cost elements = Excel rows 3..12)
   const totalCostsRow = totalCCRow + 1;
   setVal(ws, totalCostsRow, 0, 'Total Costs in k€', S.total);
-  const totalAll = baselines.reduce((s, b) => s + allCostElements.reduce((ss, ce) => ss + n(b.costElements?.[ce]), 0), 0);
-  setVal(ws, totalCostsRow, 1, totalAll, S.totalRight, fmt(0));
-  plants.forEach((p, pi) => {
-    const b = getBaseline(p.id);
-    const total = allCostElements.reduce((s, ce) => s + n(b?.costElements?.[ce]), 0);
-    setVal(ws, totalCostsRow, 2 + pi, total, S.totalRight, fmt(0));
-  });
+  if (plants.length > 0) {
+    setFormula(ws, totalCostsRow, 1, 'SUM(B3:B12)', S.totalRight, fmt(0));
+    plants.forEach((_p, pi) => {
+      const colLet = XLSX.utils.encode_col(2 + pi);
+      setFormula(ws, totalCostsRow, 2 + pi, `SUM(${colLet}3:${colLet}12)`, S.totalRight, fmt(0));
+    });
+  } else {
+    const totalAll = baselines.reduce((s, b) => s + allCostElements.reduce((ss, ce) => ss + n(b.costElements?.[ce]), 0), 0);
+    setVal(ws, totalCostsRow, 1, totalAll, S.totalRight, fmt(0));
+  }
 
   // --- Table 2: Cost structure / Department ---
   const t2Start = totalCostsRow + 3;

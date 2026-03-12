@@ -3,7 +3,8 @@ import { NavLink, useLocation } from 'react-router-dom';
 import {
   LayoutDashboard, Database, Sliders, BarChart3, PieChart,
   TrendingUp, Users, DollarSign, Settings, FileX, Download,
-  Users2, PencilLine, Wrench, ChevronDown, HelpCircle
+  Users2, PencilLine, Wrench, ChevronDown, HelpCircle,
+  ChevronLeft, ChevronRight,
 } from 'lucide-react';
 import type { LucideIcon } from 'lucide-react';
 import { useProjectStore } from '../../store/projectStore';
@@ -76,7 +77,13 @@ const NAV_SECTIONS: NavSection[] = [
   },
 ];
 
+// Flat list of all leaf nav items (used in collapsed mode)
+const ALL_NAV_ITEMS: NavItem[] = NAV_SECTIONS.flatMap(s =>
+  s.type === 'item' ? [s.item] : s.group.items
+);
+
 const STORAGE_KEY = 'bp_sidebar_groups';
+const COLLAPSED_KEY = 'bp_sidebar_collapsed';
 
 function loadGroupStates(): Record<string, boolean> {
   try {
@@ -160,6 +167,19 @@ function NavGroupSection({ group, openState, onToggle }: {
 export function Sidebar() {
   const { startTutorial } = useProjectStore();
 
+  const [isCollapsed, setIsCollapsed] = useState<boolean>(() => {
+    try { return localStorage.getItem(COLLAPSED_KEY) === 'true'; }
+    catch { return false; }
+  });
+
+  const toggleCollapsed = () => {
+    setIsCollapsed(prev => {
+      const next = !prev;
+      try { localStorage.setItem(COLLAPSED_KEY, String(next)); } catch { /* ignore */ }
+      return next;
+    });
+  };
+
   // Initialize group open states from localStorage or defaults
   const [groupStates, setGroupStates] = useState<Record<string, boolean>>(() => {
     const saved = loadGroupStates();
@@ -182,66 +202,126 @@ export function Sidebar() {
   };
 
   return (
-    <aside className="w-64 min-h-screen bg-bp-primary flex flex-col">
+    <aside
+      className={`${isCollapsed ? 'w-14' : 'w-64'} min-h-screen bg-bp-primary flex flex-col flex-shrink-0 transition-[width] duration-300 ease-in-out overflow-hidden`}
+    >
       {/* Logo / Brand */}
-      <div className="px-6 py-5 border-b border-white/10">
-        <div className="flex items-center gap-3">
-          <div className="w-8 h-8 bg-bp-secondary rounded-lg flex items-center justify-center">
+      <div className={`py-5 border-b border-white/10 flex items-center ${isCollapsed ? 'justify-center px-0' : 'justify-between px-4'}`}>
+        <div className="flex items-center gap-3 overflow-hidden">
+          <div className="w-8 h-8 bg-bp-secondary rounded-lg flex items-center justify-center flex-shrink-0">
             <TrendingUp size={18} className="text-white" />
           </div>
-          <div>
-            <p className="text-white font-bold text-sm leading-tight">BearingPoint</p>
-            <p className="text-white/60 text-xs">Performance Levers</p>
-          </div>
+          {!isCollapsed && (
+            <div className="overflow-hidden">
+              <p className="text-white font-bold text-sm leading-tight whitespace-nowrap">BearingPoint</p>
+              <p className="text-white/60 text-xs whitespace-nowrap">Performance Levers</p>
+            </div>
+          )}
         </div>
+        {!isCollapsed && (
+          <button
+            onClick={toggleCollapsed}
+            title="Réduire la barre latérale"
+            className="flex-shrink-0 p-1.5 rounded-md text-white/40 hover:text-white hover:bg-white/10 transition-colors"
+          >
+            <ChevronLeft size={16} />
+          </button>
+        )}
       </div>
 
       {/* Navigation */}
-      <nav className="flex-1 px-3 py-4">
-        {NAV_SECTIONS.map((section) => {
-          if (section.type === 'item') {
-            const { item } = section;
-            return (
+      <nav className={`flex-1 py-4 ${isCollapsed ? 'px-1' : 'px-3'} overflow-y-auto`}>
+        {isCollapsed ? (
+          /* Collapsed: flat icon list */
+          <div className="space-y-1">
+            {ALL_NAV_ITEMS.map(item => (
               <NavLink
                 key={item.to}
                 to={item.to}
                 end={item.exact}
+                title={item.label}
                 className={({ isActive }) =>
-                  `nav-item ${isActive ? 'bg-white/15 text-white' : 'text-white/70 hover:bg-white/10 hover:text-white'}`
+                  `flex items-center justify-center p-2.5 rounded-lg transition-colors ${
+                    isActive
+                      ? 'bg-white/15 text-white'
+                      : 'text-white/60 hover:bg-white/10 hover:text-white'
+                  }`
                 }
               >
                 <item.icon size={18} />
-                <span className="flex-1">{item.label}</span>
               </NavLink>
-            );
-          }
+            ))}
+          </div>
+        ) : (
+          /* Expanded: full grouped nav */
+          NAV_SECTIONS.map((section) => {
+            if (section.type === 'item') {
+              const { item } = section;
+              return (
+                <NavLink
+                  key={item.to}
+                  to={item.to}
+                  end={item.exact}
+                  className={({ isActive }) =>
+                    `nav-item ${isActive ? 'bg-white/15 text-white' : 'text-white/70 hover:bg-white/10 hover:text-white'}`
+                  }
+                >
+                  <item.icon size={18} />
+                  <span className="flex-1">{item.label}</span>
+                </NavLink>
+              );
+            }
 
-          const { group } = section;
-          return (
-            <NavGroupSection
-              key={group.label}
-              group={group}
-              openState={groupStates[group.label] ?? group.defaultOpen}
-              onToggle={() => toggleGroup(group.label)}
-            />
-          );
-        })}
+            const { group } = section;
+            return (
+              <NavGroupSection
+                key={group.label}
+                group={group}
+                openState={groupStates[group.label] ?? group.defaultOpen}
+                onToggle={() => toggleGroup(group.label)}
+              />
+            );
+          })
+        )}
       </nav>
 
       {/* Footer */}
-      <div className="px-3 pt-2 pb-2 border-t border-white/10">
-        <button
-          onClick={startTutorial}
-          data-tutorial-trigger
-          className="w-full flex items-center gap-2 px-3 py-2 rounded-lg
-                     text-white/50 hover:text-white/80 hover:bg-white/10
-                     transition-colors text-xs mb-2"
-        >
-          <HelpCircle size={14} />
-          <span>Tutoriel guidé</span>
-        </button>
-        <p className="text-white/30 text-xs px-3">v1.0 — Usage Interne</p>
-        <p className="text-white/30 text-xs px-3">© BearingPoint 2025</p>
+      <div className={`pt-2 pb-2 border-t border-white/10 ${isCollapsed ? 'px-1' : 'px-3'}`}>
+        {isCollapsed ? (
+          /* Collapsed footer: expand toggle + help icon */
+          <div className="flex flex-col items-center gap-1">
+            <button
+              onClick={toggleCollapsed}
+              title="Agrandir la barre latérale"
+              className="p-2.5 rounded-lg text-white/50 hover:text-white hover:bg-white/10 transition-colors"
+            >
+              <ChevronRight size={16} />
+            </button>
+            <button
+              onClick={startTutorial}
+              title="Tutoriel guidé"
+              data-tutorial-trigger
+              className="p-2.5 rounded-lg text-white/50 hover:text-white/80 hover:bg-white/10 transition-colors"
+            >
+              <HelpCircle size={16} />
+            </button>
+          </div>
+        ) : (
+          <>
+            <button
+              onClick={startTutorial}
+              data-tutorial-trigger
+              className="w-full flex items-center gap-2 px-3 py-2 rounded-lg
+                         text-white/50 hover:text-white/80 hover:bg-white/10
+                         transition-colors text-xs mb-2"
+            >
+              <HelpCircle size={14} />
+              <span>Tutoriel guidé</span>
+            </button>
+            <p className="text-white/30 text-xs px-3">v1.0 — Usage Interne</p>
+            <p className="text-white/30 text-xs px-3">© BearingPoint 2025</p>
+          </>
+        )}
       </div>
     </aside>
   );
