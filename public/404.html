@@ -1,0 +1,18 @@
+<!doctype html>
+<html>
+  <head>
+    <meta charset="UTF-8" />
+    <script>
+      // GitHub Pages SPA redirect: encode the path into a query string so
+      // index.html can restore it via the script below.
+      var base = '/Project_Planner';
+      var path = window.location.pathname.slice(base.length) || '/';
+      var search = window.location.search;
+      var hash = window.location.hash;
+      window.location.replace(
+        base + '/?p=' + encodeURIComponent(path + search) + (hash ? '&h=' + encodeURIComponent(hash) : '')
+      );
+    </script>
+  </head>
+  <body></body>
+</html>
