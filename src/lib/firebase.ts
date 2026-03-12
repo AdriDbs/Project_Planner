@@ -11,6 +11,13 @@ const firebaseConfig = {
   appId: import.meta.env.VITE_FIREBASE_APP_ID || "1:123456789:web:abcdef",
 };
 
+if ((import.meta.env.VITE_FIREBASE_PROJECT_ID ?? 'demo-project') === 'demo-project') {
+  console.warn(
+    '[firebase] VITE_FIREBASE_PROJECT_ID is not configured — falling back to "demo-project". ' +
+    'Firestore writes will be rejected in production. Set the VITE_FIREBASE_* env variables.'
+  );
+}
+
 const app = initializeApp(firebaseConfig);
 export const db = getFirestore(app);
 
