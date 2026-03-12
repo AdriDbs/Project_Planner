@@ -459,9 +459,9 @@ export function LeversPage() {
           </div>
         </div>
 
-        {/* Table */}
-        <div className="flex-1 overflow-auto">
-          <table className="w-full text-xs border-collapse" style={{ minWidth: '1500px' }}>
+        {/* Table — wrapped in a padding-aware scroll container so columns align with toolbar buttons */}
+        <div className="flex-1 overflow-auto px-6">
+          <table className="w-full text-xs border-collapse" style={{ minWidth: '1452px' }}>
             <thead className="table-header sticky top-0 z-10">
               {table.getHeaderGroups().map(hg => (
                 <tr key={hg.id}>
