@@ -59,12 +59,23 @@ export function useLevers(projectId: string | null) {
   }, []);
 
   const importLevers = useCallback(async (leversData: Partial<Lever>[]) => {
-    const batch = writeBatch(db);
-    leversData.forEach(l => {
-      const ref = doc(collection(db, 'levers'));
-      batch.set(ref, { ...l, createdAt: serverTimestamp(), updatedAt: serverTimestamp() });
-    });
-    await batch.commit();
+    // Firestore limite chaque writeBatch à 500 opérations max
+    // On découpe en chunks de 499 pour rester sous la limite
+    const BATCH_SIZE = 499;
+
+    for (let i = 0; i < leversData.length; i += BATCH_SIZE) {
+      const chunk = leversData.slice(i, i + BATCH_SIZE);
+      const batch = writeBatch(db);
+      chunk.forEach(l => {
+        const ref = doc(collection(db, 'levers'));
+        batch.set(ref, {
+          ...l,
+          createdAt: serverTimestamp(),
+          updatedAt: serverTimestamp(),
+        });
+      });
+      await batch.commit();
+    }
   }, []);
 
   return { levers, loading, saving, error, createLever, updateLever, updateLeverDebounced, deleteLever, importLevers };

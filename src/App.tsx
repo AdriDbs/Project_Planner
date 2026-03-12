@@ -1,5 +1,6 @@
 import { BrowserRouter, Routes, Route, useLocation } from 'react-router-dom';
 import { Toaster } from 'react-hot-toast';
+import { useProjects } from './hooks/useProjects';
 import { Sidebar } from './components/layout/Sidebar';
 import { Header } from './components/layout/Header';
 import { TutorialOverlay } from './components/tutorial/TutorialOverlay';
@@ -16,6 +17,13 @@ import { LeverLibraryPage } from './pages/LeverLibrary';
 import { ExportPage } from './pages/Export';
 import { WorkshopPage } from './pages/Workshop';
 
+// Déclenche le onSnapshot des projets dès le montage de l'app,
+// garantissant que la liste est disponible avant le rendu du Header.
+function ProjectLoader() {
+  useProjects();
+  return null;
+}
+
 function AppLayout() {
   const location = useLocation();
   const isWorkshop = location.pathname === '/workshop';
@@ -30,6 +38,7 @@ function AppLayout() {
 
   return (
     <div className="flex h-screen overflow-hidden bg-gray-50">
+      <ProjectLoader />
       <Sidebar />
       <div className="flex-1 flex flex-col min-w-0 overflow-hidden">
         <Header />

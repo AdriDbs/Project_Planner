@@ -369,10 +369,24 @@ export function LeversPage() {
 
     try {
       const data = await parseLeversExcel(file, selectedProjectId, plantNameToId, selectedYears);
-      await importLevers(data);
-      toast.success(`${data.length} leviers importés avec succès`);
+
+      // Forcer projectId sur chaque levier (sécurité si le parser l'omet)
+      const withProjectId = data.map(l => ({ ...l, projectId: selectedProjectId }));
+
+      // Avertir si des usines n'ont pas été reconnues
+      const noPlant = withProjectId.filter(l => !l.plantId || l.plantId === '').length;
+      if (noPlant > 0) {
+        toast(`⚠️ ${noPlant} levier(s) sans usine reconnue — vérifier que les noms d'usines dans le fichier correspondent exactement aux usines du projet`, {
+          duration: 7000,
+          icon: '⚠️',
+        });
+      }
+
+      await importLevers(withProjectId);
+      toast.success(`${withProjectId.length} leviers importés avec succès`);
     } catch (err) {
       toast.error(`Erreur d'import: ${(err as Error).message}`);
+      console.error('[Import Levers] Erreur:', err);
     }
     e.target.value = '';
   };
