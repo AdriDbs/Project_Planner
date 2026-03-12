@@ -9,6 +9,8 @@ interface ProjectState {
   locale: 'fr' | 'en';
   projects: Project[];
   plants: Plant[];
+  tutorialActive: boolean;
+  tutorialStep: number;
   setSelectedProject: (id: string | null) => void;
   setSelectedPlants: (ids: string[]) => void;
   setSelectedYears: (years: number[]) => void;
@@ -19,6 +21,9 @@ interface ProjectState {
   addPlant: (plant: Plant) => void;
   updateProject: (id: string, updates: Partial<Project>) => void;
   updatePlant: (id: string, updates: Partial<Plant>) => void;
+  startTutorial: () => void;
+  setTutorialActive: (active: boolean) => void;
+  setTutorialStep: (step: number) => void;
 }
 
 export const useProjectStore = create<ProjectState>()(
@@ -30,6 +35,8 @@ export const useProjectStore = create<ProjectState>()(
       locale: 'fr',
       projects: [],
       plants: [],
+      tutorialActive: false,
+      tutorialStep: 0,
       setSelectedProject: (id) => set({ selectedProjectId: id, selectedPlantIds: [] }),
       setSelectedPlants: (ids) => set({ selectedPlantIds: ids }),
       setSelectedYears: (years) => set({ selectedYears: years }),
@@ -46,6 +53,9 @@ export const useProjectStore = create<ProjectState>()(
         set((state) => ({
           plants: state.plants.map(p => p.id === id ? { ...p, ...updates } : p),
         })),
+      startTutorial: () => set({ tutorialActive: true, tutorialStep: 0 }),
+      setTutorialActive: (active) => set({ tutorialActive: active }),
+      setTutorialStep: (step) => set({ tutorialStep: step }),
     }),
     {
       name: 'bp-project-store',

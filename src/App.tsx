@@ -2,6 +2,7 @@ import { BrowserRouter, Routes, Route, useLocation } from 'react-router-dom';
 import { Toaster } from 'react-hot-toast';
 import { Sidebar } from './components/layout/Sidebar';
 import { Header } from './components/layout/Header';
+import { TutorialOverlay } from './components/tutorial/TutorialOverlay';
 import { Dashboard } from './pages/Dashboard';
 import { BaselinePage } from './pages/Baseline';
 import { LeversPage } from './pages/Levers';
@@ -56,6 +57,7 @@ function App() {
   return (
     <BrowserRouter basename="/Project_Planner/">
       <AppLayout />
+      <TutorialOverlay />
       <Toaster
         position="top-right"
         toastOptions={{
