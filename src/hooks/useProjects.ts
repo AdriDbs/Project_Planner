@@ -18,6 +18,13 @@ export function useProjects() {
     const unsub = onSnapshot(q, (snap) => {
       const data = snap.docs.map(d => ({ id: d.id, ...d.data(), createdAt: d.data().createdAt?.toDate() || new Date() } as Project));
       setProjects(data);
+      // Si le projet sélectionné persisté n'existe plus dans Firestore
+      // (ex: supprimé depuis une autre session), on reset proprement
+      // plutôt que de laisser l'UI dans un état incohérent.
+      const currentSelectedId = useProjectStore.getState().selectedProjectId;
+      if (currentSelectedId && !data.find(p => p.id === currentSelectedId)) {
+        useProjectStore.getState().setSelectedProject(null);
+      }
       setLoading(false);
     }, (err) => {
       setError(err.message);
