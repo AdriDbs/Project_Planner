@@ -1,5 +1,5 @@
 import React, { useState, useCallback } from 'react';
-import { Upload, Download, Save } from 'lucide-react';
+import { Upload, Download, Pencil, Save, X } from 'lucide-react';
 import toast from 'react-hot-toast';
 import { PageWrapper } from '../components/layout/PageWrapper';
 import { PageLoader } from '../components/ui/LoadingSkeleton';
@@ -14,40 +14,73 @@ import { exportBaselineToExcel } from '../lib/exporters';
 
 export function BaselinePage() {
   const { selectedProjectId, locale } = useProjectStore();
-  const { baselines, loading, saving, updateBaselineDebounced, importBaselines } = useBaseline(selectedProjectId);
+  const { baselines, loading, saving, updateBaseline, importBaselines } = useBaseline(selectedProjectId);
   const { plants } = usePlants(selectedProjectId);
-  const [editValues, setEditValues] = useState<Record<string, Record<string, string>>>({});
+
+  const [isEditMode, setIsEditMode] = useState(false);
+  const [draftValues, setDraftValues] = useState<Record<string, Record<CostElement, number>>>({});
 
   const getBaselineForPlant = (plantId: string): Baseline | undefined =>
     baselines.find(b => b.plantId === plantId);
 
+  const enterEditMode = useCallback(() => {
+    const draft: Record<string, Record<CostElement, number>> = {};
+    baselines.forEach(b => {
+      draft[b.plantId] = { ...b.costElements } as Record<CostElement, number>;
+    });
+    setDraftValues(draft);
+    setIsEditMode(true);
+  }, [baselines]);
+
+  const cancelEditMode = useCallback(() => {
+    setDraftValues({});
+    setIsEditMode(false);
+  }, []);
+
   const handleCellChange = useCallback((plantId: string, costEl: CostElement, rawValue: string) => {
-    setEditValues(prev => ({
-      ...prev,
-      [`${plantId}_${costEl}`]: { value: rawValue },
-    }));
-
-    const baseline = baselines.find(b => b.plantId === plantId);
-    if (!baseline) return;
-
     const numValue = parseFloat(rawValue.replace(/\s/g, '').replace(',', '.')) || 0;
-    const updated = {
-      ...baseline.costElements,
-      [costEl]: numValue,
-    };
-    updateBaselineDebounced(baseline.id, { costElements: updated });
-  }, [baselines, updateBaselineDebounced]);
+    setDraftValues(prev => ({
+      ...prev,
+      [plantId]: {
+        ...prev[plantId],
+        [costEl]: numValue,
+      },
+    }));
+  }, []);
+
+  const handleSave = useCallback(async () => {
+    const updates: Promise<void>[] = [];
+    for (const plantId of Object.keys(draftValues)) {
+      const baseline = baselines.find(b => b.plantId === plantId);
+      if (!baseline) continue;
+      updates.push(updateBaseline(baseline.id, { costElements: draftValues[plantId] }));
+    }
+    try {
+      await Promise.all(updates);
+      toast.success('Baseline sauvegardée avec succès');
+      setDraftValues({});
+      setIsEditMode(false);
+    } catch {
+      toast.error('Erreur lors de la sauvegarde');
+    }
+  }, [draftValues, baselines, updateBaseline]);
 
   const getCellValue = (plantId: string, costEl: CostElement): string => {
-    const editKey = `${plantId}_${costEl}`;
-    if (editValues[editKey]) return editValues[editKey].value;
+    if (isEditMode && draftValues[plantId]) {
+      const val = draftValues[plantId][costEl] ?? 0;
+      return String(val);
+    }
     const baseline = getBaselineForPlant(plantId);
     const val = baseline?.costElements[costEl] || 0;
     return formatNumber(val, locale);
   };
 
-  const getGroupTotal = (costEl: CostElement): number =>
-    baselines.reduce((s, b) => s + (b.costElements[costEl] || 0), 0);
+  const getGroupTotal = (costEl: CostElement): number => {
+    if (isEditMode) {
+      return plants.reduce((s, p) => s + (draftValues[p.id]?.[costEl] ?? getBaselineForPlant(p.id)?.costElements[costEl] ?? 0), 0);
+    }
+    return baselines.reduce((s, b) => s + (b.costElements[costEl] || 0), 0);
+  };
 
   const handleImport = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
@@ -78,6 +111,9 @@ export function BaselinePage() {
   if (loading) return <PageWrapper><PageLoader /></PageWrapper>;
 
   const totalCostPerPlant = (plantId: string): number => {
+    if (isEditMode && draftValues[plantId]) {
+      return Object.values(draftValues[plantId]).reduce((s, v) => s + v, 0);
+    }
     const b = getBaselineForPlant(plantId);
     return b ? Object.values(b.costElements).reduce((s, v) => s + v, 0) : 0;
   };
@@ -88,6 +124,12 @@ export function BaselinePage() {
         {/* Toolbar */}
         <div className="flex items-center justify-between">
           <div className="flex items-center gap-3">
+            {isEditMode && (
+              <span className="flex items-center gap-2 text-sm font-medium text-amber-600 bg-amber-50 border border-amber-200 rounded px-3 py-1">
+                <Pencil size={14} />
+                Mode édition — les modifications ne sont pas encore sauvegardées
+              </span>
+            )}
             {saving && (
               <span className="flex items-center gap-2 text-sm text-bp-secondary">
                 <Save size={14} className="animate-pulse" /> Sauvegarde en cours...
@@ -95,20 +137,46 @@ export function BaselinePage() {
             )}
           </div>
           <div className="flex gap-3">
-            <label className="btn-secondary flex items-center gap-2 cursor-pointer">
-              <Upload size={14} />
-              Importer Baseline Excel
-              <input type="file" accept=".xlsx,.xls" onChange={handleImport} className="hidden" />
-            </label>
-            <button onClick={handleExport} className="btn-ghost flex items-center gap-2">
-              <Download size={14} />
-              Exporter Excel
-            </button>
+            {isEditMode ? (
+              <>
+                <button
+                  onClick={handleSave}
+                  className="btn-primary flex items-center gap-2"
+                  disabled={saving}
+                >
+                  <Save size={14} />
+                  Sauvegarder
+                </button>
+                <button
+                  onClick={cancelEditMode}
+                  className="btn-ghost flex items-center gap-2"
+                >
+                  <X size={14} />
+                  Annuler
+                </button>
+              </>
+            ) : (
+              <>
+                <button onClick={enterEditMode} className="btn-secondary flex items-center gap-2">
+                  <Pencil size={14} />
+                  Modifier
+                </button>
+                <label className="btn-secondary flex items-center gap-2 cursor-pointer">
+                  <Upload size={14} />
+                  Importer Baseline Excel
+                  <input type="file" accept=".xlsx,.xls" onChange={handleImport} className="hidden" />
+                </label>
+                <button onClick={handleExport} className="btn-ghost flex items-center gap-2">
+                  <Download size={14} />
+                  Exporter Excel
+                </button>
+              </>
+            )}
           </div>
         </div>
 
         {/* Table */}
-        <div className="card p-0 overflow-hidden">
+        <div className={`card p-0 overflow-hidden ${isEditMode ? 'ring-2 ring-amber-300' : ''}`}>
           <div className="overflow-x-auto">
             <table className="w-full text-sm">
               <thead className="table-header">
@@ -129,25 +197,19 @@ export function BaselinePage() {
                     </td>
                     {plants.map(p => (
                       <td key={p.id} className="px-2 py-1.5">
-                        <input
-                          type="text"
-                          className="input-cell"
-                          value={getCellValue(p.id, el)}
-                          onChange={(e) => handleCellChange(p.id, el, e.target.value)}
-                          onFocus={(e) => {
-                            const b = getBaselineForPlant(p.id);
-                            const raw = String(b?.costElements[el] || 0);
-                            setEditValues(prev => ({ ...prev, [`${p.id}_${el}`]: { value: raw } }));
-                            e.target.select();
-                          }}
-                          onBlur={() => {
-                            setEditValues(prev => {
-                              const next = { ...prev };
-                              delete next[`${p.id}_${el}`];
-                              return next;
-                            });
-                          }}
-                        />
+                        {isEditMode ? (
+                          <input
+                            type="number"
+                            className="input-cell"
+                            value={getCellValue(p.id, el)}
+                            onChange={(e) => handleCellChange(p.id, el, e.target.value)}
+                            onFocus={(e) => e.target.select()}
+                          />
+                        ) : (
+                          <span className="block text-right font-mono px-2">
+                            {getCellValue(p.id, el)}
+                          </span>
+                        )}
                       </td>
                     ))}
                   </tr>
@@ -171,7 +233,9 @@ export function BaselinePage() {
                   </td>
                   {plants.map(p => {
                     const b = getBaselineForPlant(p.id);
-                    const val = b ? ['RM', 'PM', 'DLC', 'PILC', 'OVC'].reduce((s, el) => s + (b.costElements[el as CostElement] || 0), 0) : 0;
+                    const val = isEditMode && draftValues[p.id]
+                      ? ['RM', 'PM', 'DLC', 'PILC', 'OVC'].reduce((s, el) => s + (draftValues[p.id][el as CostElement] || 0), 0)
+                      : b ? ['RM', 'PM', 'DLC', 'PILC', 'OVC'].reduce((s, el) => s + (b.costElements[el as CostElement] || 0), 0) : 0;
                     return <td key={p.id} className="px-4 py-2.5 text-right font-mono text-bp-primary">{formatNumber(val, locale)}</td>;
                   })}
                 </tr>
