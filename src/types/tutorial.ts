@@ -18,4 +18,6 @@ export type TutorialStep = {
   padding?: number;
   chapter: string;
   chapterIndex: number;
+  allowInteraction: boolean;
+  advanceOnInteraction?: boolean;
 };

@@ -81,6 +81,31 @@ export function useTutorial() {
     };
   }, [tutorialActive, tutorialStep, measureTarget]);
 
+  // Block body scroll while tutorial is active
+  useEffect(() => {
+    if (!tutorialActive) return;
+    document.body.style.overflow = 'hidden';
+    return () => {
+      document.body.style.overflow = '';
+    };
+  }, [tutorialActive]);
+
+  // Auto-advance when advanceOnInteraction is true and user clicks the spotlight element
+  useEffect(() => {
+    if (!tutorialActive || !currentStep?.advanceOnInteraction || !currentStep?.target) return;
+
+    const el = document.querySelector(currentStep.target);
+    if (!el) return;
+
+    const handleClick = () => {
+      // Small delay to let the native action happen first (navigation, etc.)
+      setTimeout(() => next(), 350);
+    };
+
+    el.addEventListener('click', handleClick);
+    return () => el.removeEventListener('click', handleClick);
+  }, [tutorialActive, tutorialStep, currentStep, next]);
+
   // Auto-start on first visit
   useEffect(() => {
     if (

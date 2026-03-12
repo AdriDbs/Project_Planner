@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useRef, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { ChevronLeft, ChevronRight, X } from 'lucide-react';
 import type { TooltipPosition, TutorialStep } from '../../types/tutorial';
@@ -154,14 +154,22 @@ export function TutorialTooltip({
   onPrev,
   onSkip,
 }: TutorialTooltipProps) {
+  const tooltipRef = useRef<HTMLDivElement>(null);
   const tooltipStyle = computeTooltipStyle(targetRect, step.position, step.padding);
   const arrowStyle = getArrowStyle(targetRect, step.position, tooltipStyle);
   const isFirst = currentIndex === 0;
   const isLast = currentIndex === totalSteps - 1;
 
+  // Focus trap: focus the "Next" button when step changes
+  useEffect(() => {
+    const nextBtn = tooltipRef.current?.querySelector<HTMLElement>('[data-tutorial-nav="next"]');
+    if (nextBtn) nextBtn.focus();
+  }, [currentIndex]);
+
   return (
     <AnimatePresence mode="wait">
       <motion.div
+        ref={tooltipRef}
         key={currentIndex}
         initial={{ opacity: 0, y: 8 }}
         animate={{ opacity: 1, y: 0 }}
@@ -169,7 +177,7 @@ export function TutorialTooltip({
         transition={{ duration: 0.25 }}
         style={{
           ...tooltipStyle,
-          zIndex: 60,
+          zIndex: 10000,
           pointerEvents: 'all',
         }}
         className="bg-white rounded-2xl shadow-2xl overflow-hidden"
@@ -187,6 +195,7 @@ export function TutorialTooltip({
               <h3 className="text-white font-bold text-base leading-snug">{step.title}</h3>
             </div>
             <button
+              data-tutorial-close
               onClick={onSkip}
               className="text-white/40 hover:text-white/80 transition-colors mt-0.5 flex-shrink-0"
               title="Fermer le tutoriel"
@@ -204,6 +213,7 @@ export function TutorialTooltip({
         {/* Navigation */}
         <div className="px-4 pb-4 flex items-center justify-between gap-2">
           <button
+            data-tutorial-nav="prev"
             onClick={onPrev}
             disabled={isFirst}
             className="flex items-center gap-1 px-3 py-1.5 rounded-lg text-sm text-gray-500 hover:text-gray-800 hover:bg-gray-100 transition-colors disabled:opacity-30 disabled:cursor-not-allowed"
@@ -213,6 +223,7 @@ export function TutorialTooltip({
           </button>
 
           <button
+            data-tutorial-nav="skip"
             onClick={onSkip}
             className="px-3 py-1.5 rounded-lg text-sm text-gray-400 hover:text-gray-600 hover:bg-gray-50 transition-colors"
           >
@@ -220,6 +231,7 @@ export function TutorialTooltip({
           </button>
 
           <button
+            data-tutorial-nav="next"
             onClick={onNext}
             className="flex items-center gap-1 px-4 py-1.5 rounded-lg text-sm bg-bp-secondary text-white hover:bg-bp-secondary/90 transition-colors font-medium"
           >

@@ -13,6 +13,7 @@ export const TUTORIAL_STEPS: TutorialStep[] = [
     position: 'center',
     route: '/',
     beforeAction: { type: 'navigate', to: '/' },
+    allowInteraction: false,
   },
 
   // ── CHAPITRE 2 : Administration ───────────────────────────────────────────
@@ -21,10 +22,12 @@ export const TUTORIAL_STEPS: TutorialStep[] = [
     chapter: 'Administration', chapterIndex: 2,
     title: 'Administration — point de départ',
     content: `Avant tout, rendez-vous dans **Administration** pour créer votre projet et configurer vos usines. C'est le socle de toute la plateforme.`,
-    target: 'a[href="/Project_Planner/admin"]',
+    target: 'a[href="/admin"]',
     position: 'right',
     route: '/',
     beforeAction: { type: 'navigate', to: '/' },
+    allowInteraction: true,
+    advanceOnInteraction: true,
   },
   {
     id: 'admin-create-project',
@@ -35,6 +38,8 @@ export const TUTORIAL_STEPS: TutorialStep[] = [
     position: 'bottom',
     route: '/admin',
     beforeAction: { type: 'navigate', to: '/admin' },
+    allowInteraction: true,
+    advanceOnInteraction: false,
   },
   {
     id: 'admin-project-list',
@@ -44,6 +49,7 @@ export const TUTORIAL_STEPS: TutorialStep[] = [
     target: 'table tbody',
     position: 'top',
     route: '/admin',
+    allowInteraction: false,
   },
   {
     id: 'admin-add-plant',
@@ -53,6 +59,8 @@ export const TUTORIAL_STEPS: TutorialStep[] = [
     target: 'button:has([data-lucide="plus"]):last-of-type',
     position: 'bottom',
     route: '/admin',
+    allowInteraction: true,
+    advanceOnInteraction: false,
   },
   {
     id: 'admin-header-selector',
@@ -62,6 +70,7 @@ export const TUTORIAL_STEPS: TutorialStep[] = [
     target: 'header select',
     position: 'bottom',
     route: '/admin',
+    allowInteraction: false,
   },
 
   // ── CHAPITRE 3 : Baseline ─────────────────────────────────────────────────
@@ -70,9 +79,11 @@ export const TUTORIAL_STEPS: TutorialStep[] = [
     chapter: 'Baseline des coûts', chapterIndex: 3,
     title: 'Saisir la baseline des coûts',
     content: `La **baseline** représente les coûts de conversion actuels de chaque usine. C'est le référentiel contre lequel les savings des leviers seront mesurés.`,
-    target: 'a[href="/Project_Planner/baseline"]',
+    target: 'a[href="/baseline"]',
     position: 'right',
     route: '/admin',
+    allowInteraction: true,
+    advanceOnInteraction: true,
   },
   {
     id: 'baseline-table',
@@ -83,6 +94,7 @@ export const TUTORIAL_STEPS: TutorialStep[] = [
     position: 'top',
     route: '/baseline',
     beforeAction: { type: 'navigate', to: '/baseline' },
+    allowInteraction: false,
   },
   {
     id: 'baseline-import',
@@ -92,6 +104,8 @@ export const TUTORIAL_STEPS: TutorialStep[] = [
     target: 'button:has([data-lucide="upload"])',
     position: 'bottom',
     route: '/baseline',
+    allowInteraction: true,
+    advanceOnInteraction: false,
   },
 
   // ── CHAPITRE 4 : Leviers ──────────────────────────────────────────────────
@@ -100,9 +114,11 @@ export const TUTORIAL_STEPS: TutorialStep[] = [
     chapter: 'Performance Levers', chapterIndex: 4,
     title: 'Les leviers de performance',
     content: `Les **leviers** sont le cœur de la plateforme. Chaque levier représente une action d'amélioration avec ses savings estimés, son CAPEX, son horizon et son niveau de commitment.`,
-    target: 'a[href="/Project_Planner/levers"]',
+    target: 'a[href="/levers"]',
     position: 'right',
     route: '/baseline',
+    allowInteraction: true,
+    advanceOnInteraction: true,
   },
   {
     id: 'levers-table',
@@ -113,6 +129,7 @@ export const TUTORIAL_STEPS: TutorialStep[] = [
     position: 'top',
     route: '/levers',
     beforeAction: { type: 'navigate', to: '/levers' },
+    allowInteraction: false,
   },
   {
     id: 'levers-create',
@@ -122,6 +139,8 @@ export const TUTORIAL_STEPS: TutorialStep[] = [
     target: 'button:has([data-lucide="plus"])',
     position: 'bottom',
     route: '/levers',
+    allowInteraction: true,
+    advanceOnInteraction: false,
   },
   {
     id: 'levers-import',
@@ -131,6 +150,8 @@ export const TUTORIAL_STEPS: TutorialStep[] = [
     target: 'button:has([data-lucide="upload"])',
     position: 'bottom',
     route: '/levers',
+    allowInteraction: true,
+    advanceOnInteraction: false,
   },
   {
     id: 'levers-library',
@@ -140,6 +161,8 @@ export const TUTORIAL_STEPS: TutorialStep[] = [
     target: 'button:has([data-lucide="library"])',
     position: 'bottom',
     route: '/levers',
+    allowInteraction: true,
+    advanceOnInteraction: false,
   },
   {
     id: 'levers-commitment-filter',
@@ -149,6 +172,7 @@ export const TUTORIAL_STEPS: TutorialStep[] = [
     target: '[data-filter="commitment"]',
     position: 'bottom',
     route: '/levers',
+    allowInteraction: false,
   },
 
   // ── CHAPITRE 5 : Dashboard ────────────────────────────────────────────────
@@ -157,9 +181,11 @@ export const TUTORIAL_STEPS: TutorialStep[] = [
     chapter: 'Dashboard Exécutif', chapterIndex: 5,
     title: 'Le Dashboard Exécutif',
     content: `Le Dashboard agrège en temps réel toutes les données du projet. Il est conçu pour être **présenté au client** en réunion d'avancement.`,
-    target: 'a[href="/Project_Planner/"]',
+    target: 'a[href="/"]',
     position: 'right',
     route: '/levers',
+    allowInteraction: true,
+    advanceOnInteraction: true,
   },
   {
     id: 'dashboard-kpis',
@@ -170,6 +196,7 @@ export const TUTORIAL_STEPS: TutorialStep[] = [
     position: 'bottom',
     route: '/',
     beforeAction: { type: 'navigate', to: '/' },
+    allowInteraction: false,
   },
   {
     id: 'dashboard-waterfall',
@@ -179,6 +206,7 @@ export const TUTORIAL_STEPS: TutorialStep[] = [
     target: '.recharts-wrapper',
     position: 'top',
     route: '/',
+    allowInteraction: false,
   },
   {
     id: 'dashboard-phasing',
@@ -188,6 +216,7 @@ export const TUTORIAL_STEPS: TutorialStep[] = [
     target: '.recharts-wrapper:last-of-type',
     position: 'top',
     route: '/',
+    allowInteraction: false,
   },
   {
     id: 'dashboard-locale',
@@ -197,6 +226,7 @@ export const TUTORIAL_STEPS: TutorialStep[] = [
     target: 'button:has([data-lucide="globe"])',
     position: 'bottom',
     route: '/',
+    allowInteraction: false,
   },
 
   // ── CHAPITRE 6 : Restitutions ─────────────────────────────────────────────
@@ -205,49 +235,59 @@ export const TUTORIAL_STEPS: TutorialStep[] = [
     chapter: 'Restitutions', chapterIndex: 6,
     title: 'Savings par Nature de Coût',
     content: `Cette page décompose les savings par **structure d'amélioration** (DLC, PILC, OVC, FC-Personal, Maintenance…) avec trois niveaux : Commitment, Additional Potential, Full Potential.`,
-    target: 'a[href="/Project_Planner/savings-by-type"]',
+    target: 'a[href="/savings-by-type"]',
     position: 'right',
     route: '/',
+    allowInteraction: true,
+    advanceOnInteraction: true,
   },
   {
     id: 'phasing-savings',
     chapter: 'Restitutions', chapterIndex: 6,
     title: 'Phasing des Savings',
     content: `La page **Phasing** affiche les savings annuels et cumulés, avec un toggle entre vue par **structure** et vue par **département**. Idéal pour le planning financier.`,
-    target: 'a[href="/Project_Planner/phasing"]',
+    target: 'a[href="/phasing"]',
     position: 'right',
     route: '/savings-by-type',
     beforeAction: { type: 'navigate', to: '/savings-by-type' },
+    allowInteraction: true,
+    advanceOnInteraction: true,
   },
   {
     id: 'organization-fte',
     chapter: 'Restitutions', chapterIndex: 6,
     title: 'Organisation & FTE Savings',
     content: `La page **Organisation** détaille les économies FTE par département, avec distinction Hard / Soft savings. Les FTE baseline viennent de la page Baseline.`,
-    target: 'a[href="/Project_Planner/organization"]',
+    target: 'a[href="/organization"]',
     position: 'right',
     route: '/phasing',
     beforeAction: { type: 'navigate', to: '/phasing' },
+    allowInteraction: true,
+    advanceOnInteraction: true,
   },
   {
     id: 'capex-opex',
     chapter: 'Restitutions', chapterIndex: 6,
     title: 'CAPEX & OPEX',
     content: `La page **CAPEX & OPEX** affiche le phasing des investissements en 4 blocs :\n- CAPEX annuel et cumulé\n- One-Off OPEX annuel et cumulé\n\nElle permet de valider la faisabilité financière du plan.`,
-    target: 'a[href="/Project_Planner/capex-opex"]',
+    target: 'a[href="/capex-opex"]',
     position: 'right',
     route: '/organization',
     beforeAction: { type: 'navigate', to: '/organization' },
+    allowInteraction: true,
+    advanceOnInteraction: true,
   },
   {
     id: 'out-of-scope',
     chapter: 'Restitutions', chapterIndex: 6,
     title: 'Out of Scope',
     content: `Les leviers **No Go** ou hors périmètre sont regroupés ici. Ils ne contribuent pas aux savings mais restent documentés pour traçabilité — utile pour montrer au client les leviers délibérément écartés.`,
-    target: 'a[href="/Project_Planner/out-of-scope"]',
+    target: 'a[href="/out-of-scope"]',
     position: 'right',
     route: '/capex-opex',
     beforeAction: { type: 'navigate', to: '/capex-opex' },
+    allowInteraction: true,
+    advanceOnInteraction: true,
   },
 
   // ── CHAPITRE 7 : Export Excel ─────────────────────────────────────────────
@@ -256,10 +296,12 @@ export const TUTORIAL_STEPS: TutorialStep[] = [
     chapter: 'Export Excel', chapterIndex: 7,
     title: 'Générer le Project Planner Excel',
     content: `La page **Export** génère un fichier Excel identique au BBACM source, avec 9 onglets calculés depuis vos données Firestore. Tout est généré **côté client** — aucun serveur requis.`,
-    target: 'a[href="/Project_Planner/export"]',
+    target: 'a[href="/export"]',
     position: 'right',
     route: '/out-of-scope',
     beforeAction: { type: 'navigate', to: '/out-of-scope' },
+    allowInteraction: true,
+    advanceOnInteraction: true,
   },
   {
     id: 'export-config',
@@ -270,6 +312,7 @@ export const TUTORIAL_STEPS: TutorialStep[] = [
     position: 'bottom',
     route: '/export',
     beforeAction: { type: 'navigate', to: '/export' },
+    allowInteraction: false,
   },
   {
     id: 'export-levers',
@@ -279,6 +322,7 @@ export const TUTORIAL_STEPS: TutorialStep[] = [
     target: '[data-step="2"]',
     position: 'top',
     route: '/export',
+    allowInteraction: false,
   },
   {
     id: 'export-download',
@@ -288,6 +332,8 @@ export const TUTORIAL_STEPS: TutorialStep[] = [
     target: 'button:has([data-lucide="download"])',
     position: 'top',
     route: '/export',
+    allowInteraction: true,
+    advanceOnInteraction: false,
   },
 
   // ── CHAPITRE 8 : Workshop ─────────────────────────────────────────────────
@@ -296,19 +342,23 @@ export const TUTORIAL_STEPS: TutorialStep[] = [
     chapter: 'Workshop Client', chapterIndex: 8,
     title: 'Mode Workshop — Co-construction',
     content: `Le mode **Workshop** est une interface plein écran conçue pour les ateliers client. Il guide le consultant et le client à travers 6 phases de co-construction du plan de transformation.`,
-    target: 'a[href="/Project_Planner/workshop"]',
+    target: 'a[href="/workshop"]',
     position: 'right',
     route: '/export',
     beforeAction: { type: 'navigate', to: '/export' },
+    allowInteraction: true,
+    advanceOnInteraction: true,
   },
   {
     id: 'workshop-launcher',
     chapter: 'Workshop Client', chapterIndex: 8,
     title: 'Lancer un atelier',
-    content: `Cliquez sur **"Co-construction Workshop"** dans la sidebar pour ouvrir le launcher. Configurez :\n- Le projet et le client\n- Le facilitateur BearingPoint\n- Les participants (avec leur rôle)\n- Le périmètre des leviers à traiter`,
-    target: 'a[href="/Project_Planner/workshop"]',
-    position: 'right',
-    route: '/export',
+    content: `Configurez l'atelier depuis la page Workshop :\n- Le projet et le client\n- Le facilitateur BearingPoint\n- Les participants (avec leur rôle)\n- Le périmètre des leviers à traiter`,
+    target: null,
+    position: 'center',
+    route: '/workshop',
+    beforeAction: { type: 'navigate', to: '/workshop' },
+    allowInteraction: false,
   },
 
   // ── CHAPITRE 9 : Admin avancé ─────────────────────────────────────────────
@@ -321,6 +371,7 @@ export const TUTORIAL_STEPS: TutorialStep[] = [
     position: 'bottom',
     route: '/admin',
     beforeAction: { type: 'navigate', to: '/admin' },
+    allowInteraction: false,
   },
   {
     id: 'admin-workshops-history',
@@ -330,6 +381,7 @@ export const TUTORIAL_STEPS: TutorialStep[] = [
     target: '[data-tab="workshops"]',
     position: 'bottom',
     route: '/admin',
+    allowInteraction: false,
   },
 
   // ── CHAPITRE 10 : Fin ─────────────────────────────────────────────────────
@@ -342,5 +394,6 @@ export const TUTORIAL_STEPS: TutorialStep[] = [
     position: 'center',
     route: '/admin',
     beforeAction: { type: 'navigate', to: '/' },
+    allowInteraction: false,
   },
 ];

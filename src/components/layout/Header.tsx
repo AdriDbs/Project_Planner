@@ -13,6 +13,8 @@ const PAGE_TITLES: Record<string, string> = {
   '/organization': 'Organisation & FTE',
   '/capex-opex': 'CAPEX & OPEX',
   '/out-of-scope': 'Out of Scope',
+  '/export': 'Export Excel',
+  '/workshop': 'Workshop Client',
   '/admin': 'Administration',
 };
 
