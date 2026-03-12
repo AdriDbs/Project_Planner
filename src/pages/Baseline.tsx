@@ -12,25 +12,40 @@ import { formatNumber } from '../lib/calculations';
 import { parseBaselineExcel } from '../lib/importers';
 import { exportBaselineToExcel } from '../lib/exporters';
 
+// Draft stores raw strings keyed by plantId → costElement
+type DraftValues = Record<string, Record<CostElement, string>>;
+
+function parseRaw(raw: string): number {
+  const n = parseFloat(raw.replace(/\s/g, '').replace(',', '.'));
+  return isNaN(n) ? 0 : n;
+}
+
 export function BaselinePage() {
   const { selectedProjectId, locale } = useProjectStore();
   const { baselines, loading, saving, updateBaseline, importBaselines } = useBaseline(selectedProjectId);
   const { plants } = usePlants(selectedProjectId);
 
   const [isEditMode, setIsEditMode] = useState(false);
-  const [draftValues, setDraftValues] = useState<Record<string, Record<CostElement, number>>>({});
+  const [draftValues, setDraftValues] = useState<DraftValues>({});
+  const [isSaving, setIsSaving] = useState(false);
 
-  const getBaselineForPlant = (plantId: string): Baseline | undefined =>
-    baselines.find(b => b.plantId === plantId);
+  const getBaselineForPlant = useCallback(
+    (plantId: string): Baseline | undefined => baselines.find(b => b.plantId === plantId),
+    [baselines]
+  );
 
   const enterEditMode = useCallback(() => {
-    const draft: Record<string, Record<CostElement, number>> = {};
-    baselines.forEach(b => {
-      draft[b.plantId] = { ...b.costElements } as Record<CostElement, number>;
-    });
+    const draft: DraftValues = {};
+    for (const plant of plants) {
+      const b = getBaselineForPlant(plant.id);
+      draft[plant.id] = {} as Record<CostElement, string>;
+      for (const el of COST_ELEMENTS) {
+        draft[plant.id][el] = String(b?.costElements[el] ?? 0);
+      }
+    }
     setDraftValues(draft);
     setIsEditMode(true);
-  }, [baselines]);
+  }, [plants, getBaselineForPlant]);
 
   const cancelEditMode = useCallback(() => {
     setDraftValues({});
@@ -38,57 +53,77 @@ export function BaselinePage() {
   }, []);
 
   const handleCellChange = useCallback((plantId: string, costEl: CostElement, rawValue: string) => {
-    const numValue = parseFloat(rawValue.replace(/\s/g, '').replace(',', '.')) || 0;
     setDraftValues(prev => ({
       ...prev,
       [plantId]: {
         ...prev[plantId],
-        [costEl]: numValue,
+        [costEl]: rawValue,
       },
     }));
   }, []);
 
   const handleSave = useCallback(async () => {
-    const updates: Promise<void>[] = [];
-    for (const plantId of Object.keys(draftValues)) {
-      const baseline = baselines.find(b => b.plantId === plantId);
-      if (!baseline) continue;
-      updates.push(updateBaseline(baseline.id, { costElements: draftValues[plantId] }));
-    }
+    setIsSaving(true);
     try {
+      const updates: Promise<void>[] = [];
+      for (const plant of plants) {
+        const plantDraft = draftValues[plant.id];
+        if (!plantDraft) continue;
+
+        const baseline = baselines.find(b => b.plantId === plant.id);
+        if (!baseline) continue;
+
+        const costElements = {} as Record<CostElement, number>;
+        for (const el of COST_ELEMENTS) {
+          costElements[el] = parseRaw(plantDraft[el] ?? '0');
+        }
+        updates.push(updateBaseline(baseline.id, { costElements }));
+      }
+
       await Promise.all(updates);
       toast.success('Baseline sauvegardée avec succès');
       setDraftValues({});
       setIsEditMode(false);
     } catch {
       toast.error('Erreur lors de la sauvegarde');
+    } finally {
+      setIsSaving(false);
     }
-  }, [draftValues, baselines, updateBaseline]);
+  }, [plants, draftValues, baselines, updateBaseline]);
 
-  const getCellValue = (plantId: string, costEl: CostElement): string => {
-    if (isEditMode && draftValues[plantId]) {
-      const val = draftValues[plantId][costEl] ?? 0;
-      return String(val);
+  const getCellDisplay = (plantId: string, costEl: CostElement): string => {
+    if (isEditMode) {
+      return draftValues[plantId]?.[costEl] ?? '0';
     }
     const baseline = getBaselineForPlant(plantId);
-    const val = baseline?.costElements[costEl] || 0;
-    return formatNumber(val, locale);
+    return formatNumber(baseline?.costElements[costEl] ?? 0, locale);
+  };
+
+  const getDraftNumber = (plantId: string, costEl: CostElement): number => {
+    const raw = draftValues[plantId]?.[costEl];
+    return raw !== undefined ? parseRaw(raw) : (getBaselineForPlant(plantId)?.costElements[costEl] ?? 0);
   };
 
   const getGroupTotal = (costEl: CostElement): number => {
     if (isEditMode) {
-      return plants.reduce((s, p) => s + (draftValues[p.id]?.[costEl] ?? getBaselineForPlant(p.id)?.costElements[costEl] ?? 0), 0);
+      return plants.reduce((s, p) => s + getDraftNumber(p.id, costEl), 0);
     }
-    return baselines.reduce((s, b) => s + (b.costElements[costEl] || 0), 0);
+    return baselines.reduce((s, b) => s + (b.costElements[costEl] ?? 0), 0);
+  };
+
+  const totalCostPerPlant = (plantId: string): number => {
+    if (isEditMode) {
+      return COST_ELEMENTS.reduce((s, el) => s + getDraftNumber(plantId, el), 0);
+    }
+    const b = getBaselineForPlant(plantId);
+    return b ? Object.values(b.costElements).reduce((s, v) => s + v, 0) : 0;
   };
 
   const handleImport = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (!file || !selectedProjectId) return;
-
     const plantMap: Record<string, string> = {};
     plants.forEach(p => { plantMap[p.name] = p.id; });
-
     try {
       const data = await parseBaselineExcel(file, selectedProjectId, plantMap);
       await importBaselines(data);
@@ -110,12 +145,12 @@ export function BaselinePage() {
 
   if (loading) return <PageWrapper><PageLoader /></PageWrapper>;
 
-  const totalCostPerPlant = (plantId: string): number => {
-    if (isEditMode && draftValues[plantId]) {
-      return Object.values(draftValues[plantId]).reduce((s, v) => s + v, 0);
-    }
+  const CC_ELEMENTS: CostElement[] = ['RM', 'PM', 'DLC', 'PILC', 'OVC'];
+
+  const getTotalCC = (plantId: string): number => {
+    if (isEditMode) return CC_ELEMENTS.reduce((s, el) => s + getDraftNumber(plantId, el), 0);
     const b = getBaselineForPlant(plantId);
-    return b ? Object.values(b.costElements).reduce((s, v) => s + v, 0) : 0;
+    return b ? CC_ELEMENTS.reduce((s, el) => s + (b.costElements[el] ?? 0), 0) : 0;
   };
 
   return (
@@ -127,10 +162,10 @@ export function BaselinePage() {
             {isEditMode && (
               <span className="flex items-center gap-2 text-sm font-medium text-amber-600 bg-amber-50 border border-amber-200 rounded px-3 py-1">
                 <Pencil size={14} />
-                Mode édition — les modifications ne sont pas encore sauvegardées
+                Mode édition — modifications non sauvegardées
               </span>
             )}
-            {saving && (
+            {(saving || isSaving) && (
               <span className="flex items-center gap-2 text-sm text-bp-secondary">
                 <Save size={14} className="animate-pulse" /> Sauvegarde en cours...
               </span>
@@ -139,18 +174,11 @@ export function BaselinePage() {
           <div className="flex gap-3">
             {isEditMode ? (
               <>
-                <button
-                  onClick={handleSave}
-                  className="btn-primary flex items-center gap-2"
-                  disabled={saving}
-                >
+                <button onClick={handleSave} className="btn-primary flex items-center gap-2" disabled={isSaving}>
                   <Save size={14} />
                   Sauvegarder
                 </button>
-                <button
-                  onClick={cancelEditMode}
-                  className="btn-ghost flex items-center gap-2"
-                >
+                <button onClick={cancelEditMode} className="btn-ghost flex items-center gap-2">
                   <X size={14} />
                   Annuler
                 </button>
@@ -199,15 +227,16 @@ export function BaselinePage() {
                       <td key={p.id} className="px-2 py-1.5">
                         {isEditMode ? (
                           <input
-                            type="number"
+                            type="text"
+                            inputMode="decimal"
                             className="input-cell"
-                            value={getCellValue(p.id, el)}
+                            value={getCellDisplay(p.id, el)}
                             onChange={(e) => handleCellChange(p.id, el, e.target.value)}
                             onFocus={(e) => e.target.select()}
                           />
                         ) : (
                           <span className="block text-right font-mono px-2">
-                            {getCellValue(p.id, el)}
+                            {getCellDisplay(p.id, el)}
                           </span>
                         )}
                       </td>
@@ -227,24 +256,29 @@ export function BaselinePage() {
                   <td className="px-4 py-2.5 text-bp-primary">Total CC</td>
                   <td className="px-4 py-2.5 text-right font-mono text-bp-primary">
                     {formatNumber(
-                      baselines.reduce((s, b) => s + ['RM', 'PM', 'DLC', 'PILC', 'OVC'].reduce((ss, el) => ss + (b.costElements[el as CostElement] || 0), 0), 0),
+                      isEditMode
+                        ? plants.reduce((s, p) => s + getTotalCC(p.id), 0)
+                        : baselines.reduce((s, b) => s + CC_ELEMENTS.reduce((ss, el) => ss + (b.costElements[el] ?? 0), 0), 0),
                       locale
                     )}
                   </td>
-                  {plants.map(p => {
-                    const b = getBaselineForPlant(p.id);
-                    const val = isEditMode && draftValues[p.id]
-                      ? ['RM', 'PM', 'DLC', 'PILC', 'OVC'].reduce((s, el) => s + (draftValues[p.id][el as CostElement] || 0), 0)
-                      : b ? ['RM', 'PM', 'DLC', 'PILC', 'OVC'].reduce((s, el) => s + (b.costElements[el as CostElement] || 0), 0) : 0;
-                    return <td key={p.id} className="px-4 py-2.5 text-right font-mono text-bp-primary">{formatNumber(val, locale)}</td>;
-                  })}
+                  {plants.map(p => (
+                    <td key={p.id} className="px-4 py-2.5 text-right font-mono text-bp-primary">
+                      {formatNumber(getTotalCC(p.id), locale)}
+                    </td>
+                  ))}
                 </tr>
 
                 {/* Total Costs */}
                 <tr className="bg-bp-primary/10 font-bold">
                   <td className="px-4 py-3 text-bp-primary">Total Costs</td>
                   <td className="px-4 py-3 text-right font-mono text-bp-primary">
-                    {formatNumber(baselines.reduce((s, b) => s + Object.values(b.costElements).reduce((ss, v) => ss + v, 0), 0), locale)}
+                    {formatNumber(
+                      isEditMode
+                        ? plants.reduce((s, p) => s + totalCostPerPlant(p.id), 0)
+                        : baselines.reduce((s, b) => s + Object.values(b.costElements).reduce((ss, v) => ss + v, 0), 0),
+                      locale
+                    )}
                   </td>
                   {plants.map(p => (
                     <td key={p.id} className="px-4 py-3 text-right font-mono text-bp-primary">

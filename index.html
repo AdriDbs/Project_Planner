@@ -2,6 +2,21 @@
 <html lang="en">
   <head>
     <meta charset="UTF-8" />
+    <script>
+      // Restore path redirected by 404.html
+      (function () {
+        var qs = window.location.search;
+        if (qs) {
+          var params = new URLSearchParams(qs);
+          var p = params.get('p');
+          var h = params.get('h') || '';
+          if (p) {
+            var base = '/Project_Planner';
+            window.history.replaceState(null, '', base + decodeURIComponent(p) + decodeURIComponent(h));
+          }
+        }
+      })();
+    </script>
     <link rel="icon" type="image/svg+xml" href="/vite.svg" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <link rel="preconnect" href="https://fonts.googleapis.com" />
