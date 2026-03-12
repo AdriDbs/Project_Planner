@@ -22,7 +22,7 @@ function parseRaw(raw: string): number {
 
 export function BaselinePage() {
   const { selectedProjectId, locale } = useProjectStore();
-  const { baselines, loading, saving, updateBaseline, importBaselines } = useBaseline(selectedProjectId);
+  const { baselines, loading, saving, updateBaseline, upsertBaseline, importBaselines } = useBaseline(selectedProjectId);
   const { plants } = usePlants(selectedProjectId);
 
   const [isEditMode, setIsEditMode] = useState(false);
@@ -63,6 +63,7 @@ export function BaselinePage() {
   }, []);
 
   const handleSave = useCallback(async () => {
+    if (!selectedProjectId) return;
     setIsSaving(true);
     try {
       const updates: Promise<void>[] = [];
@@ -70,26 +71,32 @@ export function BaselinePage() {
         const plantDraft = draftValues[plant.id];
         if (!plantDraft) continue;
 
-        const baseline = baselines.find(b => b.plantId === plant.id);
-        if (!baseline) continue;
-
         const costElements = {} as Record<CostElement, number>;
         for (const el of COST_ELEMENTS) {
           costElements[el] = parseRaw(plantDraft[el] ?? '0');
         }
-        updates.push(updateBaseline(baseline.id, { costElements }));
+
+        const baseline = baselines.find(b => b.plantId === plant.id);
+        if (baseline) {
+          // Update existing document (preserves all other fields)
+          updates.push(updateBaseline(baseline.id, { costElements }));
+        } else {
+          // No baseline exists yet for this plant — create with deterministic ID
+          updates.push(upsertBaseline(plant.id, selectedProjectId, costElements));
+        }
       }
 
       await Promise.all(updates);
       toast.success('Baseline sauvegardée avec succès');
       setDraftValues({});
       setIsEditMode(false);
-    } catch {
+    } catch (err) {
+      console.error('[BaselinePage] handleSave failed:', err);
       toast.error('Erreur lors de la sauvegarde');
     } finally {
       setIsSaving(false);
     }
-  }, [plants, draftValues, baselines, updateBaseline]);
+  }, [plants, draftValues, baselines, selectedProjectId, updateBaseline, upsertBaseline]);
 
   const getCellDisplay = (plantId: string, costEl: CostElement): string => {
     if (isEditMode) {
