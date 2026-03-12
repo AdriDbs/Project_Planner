@@ -46,8 +46,11 @@ export function TutorialSpotlight({
         width: '100%',
         height: '100%',
         zIndex: 9997,
-        pointerEvents: 'all',
-        transition: 'fill 0.3s ease',
+        // When allowInteraction: SVG is fully transparent to pointer events.
+        // The document-level capture listener in TutorialOverlay handles blocking.
+        // When !allowInteraction: SVG captures all clicks (including the masked
+        // "transparent" spotlight area — SVG masks don't affect pointer events).
+        pointerEvents: allowInteraction ? 'none' : 'all',
       }}
     >
       <defs>
@@ -66,7 +69,7 @@ export function TutorialSpotlight({
           )}
         </mask>
       </defs>
-      {/* Dark overlay — captures clicks on blocked areas */}
+      {/* Dark overlay — captures clicks when !allowInteraction */}
       <rect
         width="100%"
         height="100%"
@@ -92,11 +95,7 @@ export function TutorialSpotlight({
           style={{
             transition: 'all 350ms ease',
             filter: `drop-shadow(0 0 6px ${strokeColor}99)`,
-            pointerEvents: allowInteraction ? 'none' : 'all',
-          }}
-          onClick={allowInteraction ? undefined : (e) => {
-            e.stopPropagation();
-            onOverlayClick?.();
+            pointerEvents: 'none',
           }}
         >
           <animate
