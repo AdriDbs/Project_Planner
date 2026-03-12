@@ -52,22 +52,27 @@ export function TutorialOverlay() {
   useEffect(() => {
     if (!isActive || !currentStep) return;
 
-    const blockClicks = (e: MouseEvent) => {
-      const target = e.target as Element;
-
-      // Always allow tutorial navigation buttons
-      if (target.closest('[data-tutorial-nav]')) return;
-
-      // Allow the close button
-      if (target.closest('[data-tutorial-close]')) return;
-
-      // If the step allows interaction with the spotlight element
+    const shouldBlock = (target: Element): boolean => {
+      if (target.closest('[data-tutorial-nav]')) return false;
+      if (target.closest('[data-tutorial-close]')) return false;
       if (currentStep.allowInteraction && currentStep.target) {
         const spotlightEl = document.querySelector(currentStep.target);
-        if (spotlightEl && spotlightEl.contains(target)) return;
+        if (spotlightEl && spotlightEl.contains(target)) return false;
       }
+      return true;
+    };
 
-      // Block everything else
+    const blockClicks = (e: MouseEvent) => {
+      if (!shouldBlock(e.target as Element)) return;
+      e.stopPropagation();
+      e.preventDefault();
+      flashOverlay();
+    };
+
+    const blockTouch = (e: TouchEvent) => {
+      const touch = e.touches[0] ?? e.changedTouches[0];
+      const target = touch ? document.elementFromPoint(touch.clientX, touch.clientY) : null;
+      if (!target || !shouldBlock(target)) return;
       e.stopPropagation();
       e.preventDefault();
       flashOverlay();
@@ -75,12 +80,12 @@ export function TutorialOverlay() {
 
     document.addEventListener('click', blockClicks, true);
     document.addEventListener('mousedown', blockClicks, true);
-    document.addEventListener('touchstart', blockClicks, { capture: true, passive: false });
+    document.addEventListener('touchstart', blockTouch, { capture: true, passive: false });
 
     return () => {
       document.removeEventListener('click', blockClicks, true);
       document.removeEventListener('mousedown', blockClicks, true);
-      document.removeEventListener('touchstart', blockClicks, true);
+      document.removeEventListener('touchstart', blockTouch, true);
     };
   }, [isActive, currentStep, flashOverlay]);
 
