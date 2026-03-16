@@ -189,7 +189,7 @@ function AddLeverDrawer({
     'Quality', 'GM', 'HR', 'IT', 'Finance', 'HSE', 'Engineering',
   ];
   const structures = [
-    'DLC', 'PILC', 'OVC', 'FC-Personal', 'Maintenance', 'OFC', 'RM/PM Losses',
+    'DLC', 'PILC', 'OVC', 'FC-Personal', 'Maintenance', 'OFC', 'RM Losses', 'PM Losses',
   ];
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -233,8 +233,19 @@ function AddLeverDrawer({
         comment: '',
         fteSavingsType: 'Not impacting',
         fte: 0,
+        oeeOrFte: '',
+        gy: [],
+        oee: [],
+        ht: [],
+        rmLosses: 0,
+        pmLosses: 0,
         implementationStart: '',
         implementationEnd: '',
+        projectDurationMonths: 0,
+        capexImpactYear: '',
+        kpiImpactYear: '',
+        libraryLeverId: null,
+        isFromLibrary: false,
       });
       onCreated({ id, projectId, plantId, ...form } as unknown as Lever);
       toast.success('Levier créé');
