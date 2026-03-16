@@ -1,6 +1,6 @@
 import React, { useState, useCallback, useRef } from 'react';
 import {
-  Upload, Save, X, Info, Plus, Trash2, ChevronDown, ChevronUp,
+  Upload, Save, X, Info, Plus, Trash2, ChevronDown, ChevronUp, Download,
 } from 'lucide-react';
 import toast from 'react-hot-toast';
 import { PageWrapper } from '../components/layout/PageWrapper';
@@ -29,6 +29,7 @@ import {
   parseBaselineVolumesExcel,
   detectBaselineType,
 } from '../lib/importers';
+import { exportBaselineV2ToExcel } from '../lib/exporters';
 
 // ---------------------------------------------------------------------------
 // Types & helpers
@@ -818,6 +819,36 @@ export function BaselinePage() {
   const [previewOpen, setPreviewOpen] = useState(false);
 
   // ---------------------------------------------------------------------------
+  // Export handler
+  // ---------------------------------------------------------------------------
+
+  const handleExport = useCallback(() => {
+    // Debug: log data sources to diagnose empty export issues
+    console.debug('[Export Baseline] baselines:', baselines);
+    console.debug('[Export Baseline] plants:', plants?.length, plants);
+
+    const hasData =
+      baselines.cost_element ||
+      baselines.department ||
+      baselines.fte_department ||
+      baselines.volumes;
+
+    if (!hasData) {
+      toast.error("Aucune donnée baseline à exporter. Vérifiez que des données sont saisies dans l'onglet Baseline.");
+      return;
+    }
+
+    exportBaselineV2ToExcel({
+      costElement: baselines.cost_element as BaselineMatrix | null,
+      department: baselines.department as BaselineMatrix | null,
+      fte: baselines.fte_department as BaselineMatrix | null,
+      volumes: baselines.volumes as BaselineVolumes | null,
+      filename: `baseline_export_${selectedProjectId ?? 'projet'}.xlsx`,
+    });
+    toast.success('Export Excel généré');
+  }, [baselines, plants, selectedProjectId]);
+
+  // ---------------------------------------------------------------------------
   // Save handlers
   // ---------------------------------------------------------------------------
 
@@ -926,21 +957,31 @@ export function BaselinePage() {
   return (
     <PageWrapper>
       <div className="space-y-4">
-        {/* Tabs */}
-        <div className="flex border-b border-gray-200">
-          {TABS.map(tab => (
-            <button
-              key={tab.id}
-              onClick={() => setActiveTab(tab.id)}
-              className={`px-5 py-2.5 text-sm font-medium border-b-2 transition-colors ${
-                activeTab === tab.id
-                  ? 'border-bp-primary text-bp-primary'
-                  : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'
-              }`}
-            >
-              {tab.label}
-            </button>
-          ))}
+        {/* Tabs + Export button */}
+        <div className="flex items-center border-b border-gray-200">
+          <div className="flex flex-1">
+            {TABS.map(tab => (
+              <button
+                key={tab.id}
+                onClick={() => setActiveTab(tab.id)}
+                className={`px-5 py-2.5 text-sm font-medium border-b-2 transition-colors ${
+                  activeTab === tab.id
+                    ? 'border-bp-primary text-bp-primary'
+                    : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'
+                }`}
+              >
+                {tab.label}
+              </button>
+            ))}
+          </div>
+          <button
+            onClick={handleExport}
+            className="flex items-center gap-2 px-4 py-2 mb-px text-sm font-medium text-gray-600 hover:text-bp-primary transition-colors"
+            title="Exporter toutes les baselines en Excel"
+          >
+            <Download size={15} />
+            Exporter Excel
+          </button>
         </div>
 
         {/* Tab content */}

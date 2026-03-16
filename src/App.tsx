@@ -1,9 +1,10 @@
 import { BrowserRouter, Routes, Route, useLocation } from 'react-router-dom';
 import { Toaster } from 'react-hot-toast';
-import { useProjects } from './hooks/useProjects';
+import { useProjects, usePlants } from './hooks/useProjects';
 import { Sidebar } from './components/layout/Sidebar';
 import { Header } from './components/layout/Header';
 import { TutorialOverlay } from './components/tutorial/TutorialOverlay';
+import { WorkshopLauncher } from './components/workshop/WorkshopLauncher';
 import { Dashboard } from './pages/Dashboard';
 import { BaselinePage } from './pages/Baseline';
 import { LeversPage } from './pages/Levers';
@@ -16,12 +17,39 @@ import { AdminPage } from './pages/Admin';
 import { LeverLibraryPage } from './pages/LeverLibrary';
 import { ExportPage } from './pages/Export';
 import { WorkshopPage } from './pages/Workshop';
+import { useProjectStore } from './store/projectStore';
+import { useWorkshopStore } from './store/workshopStore';
 
 // Déclenche le onSnapshot des projets dès le montage de l'app,
 // garantissant que la liste est disponible avant le rendu du Header.
 function ProjectLoader() {
   useProjects();
   return null;
+}
+
+// Modal overlay for the WorkshopLauncher — triggered from any page via workshopStore.
+function WorkshopLauncherModal() {
+  const { isLauncherOpen, setLauncherOpen } = useWorkshopStore();
+  const { selectedProjectId, projects } = useProjectStore();
+  const { plants } = usePlants(selectedProjectId);
+
+  if (!isLauncherOpen) return null;
+
+  const project = projects.find(p => p.id === selectedProjectId);
+  if (!project) return null;
+
+  return (
+    <div className="fixed inset-0 z-50 flex items-center justify-center">
+      <div className="absolute inset-0 bg-black/50" onClick={() => setLauncherOpen(false)} />
+      <div className="relative bg-white rounded-2xl shadow-2xl w-full max-w-lg mx-4 max-h-[90vh] overflow-y-auto p-6">
+        <WorkshopLauncher
+          project={project}
+          plants={plants}
+          onClose={() => setLauncherOpen(false)}
+        />
+      </div>
+    </div>
+  );
 }
 
 function AppLayout() {
@@ -67,6 +95,7 @@ function App() {
     <BrowserRouter basename="/Project_Planner/">
       <AppLayout />
       <TutorialOverlay />
+      <WorkshopLauncherModal />
       <Toaster
         position="top-right"
         toastOptions={{
