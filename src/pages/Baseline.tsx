@@ -823,9 +823,10 @@ export function BaselinePage() {
   // ---------------------------------------------------------------------------
 
   const handleExport = useCallback(() => {
-    // Debug: log data sources to diagnose empty export issues
-    console.debug('[Export Baseline] baselines:', baselines);
-    console.debug('[Export Baseline] plants:', plants?.length, plants);
+    if (isLoading) {
+      toast.error('Données en cours de chargement, réessayez dans un instant.');
+      return;
+    }
 
     const hasData =
       baselines.cost_element ||
@@ -838,15 +839,19 @@ export function BaselinePage() {
       return;
     }
 
-    exportBaselineV2ToExcel({
-      costElement: baselines.cost_element as BaselineMatrix | null,
-      department: baselines.department as BaselineMatrix | null,
-      fte: baselines.fte_department as BaselineMatrix | null,
-      volumes: baselines.volumes as BaselineVolumes | null,
-      filename: `baseline_export_${selectedProjectId ?? 'projet'}.xlsx`,
-    });
-    toast.success('Export Excel généré');
-  }, [baselines, plants, selectedProjectId]);
+    try {
+      exportBaselineV2ToExcel({
+        costElement: baselines.cost_element as BaselineMatrix | null,
+        department: baselines.department as BaselineMatrix | null,
+        fte: baselines.fte_department as BaselineMatrix | null,
+        volumes: baselines.volumes as BaselineVolumes | null,
+        filename: `baseline_export_${selectedProjectId ?? 'projet'}.xlsx`,
+      });
+      toast.success('Export Excel généré avec succès');
+    } catch (err) {
+      toast.error((err as Error).message);
+    }
+  }, [baselines, isLoading, selectedProjectId]);
 
   // ---------------------------------------------------------------------------
   // Save handlers

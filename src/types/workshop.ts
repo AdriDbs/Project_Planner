@@ -1,4 +1,42 @@
-// ─── Workshop Types ──────────────────────────────────────────────────────────
+// ─── Workshop Co-Construction Types ──────────────────────────────────────────
+
+export type WorkshopPhase =
+  | 'setup'           // Phase 1 — Configuration du workshop
+  | 'lever_library'   // Phase 2 — Présentation de la bibliothèque de leviers
+  | 'selection'       // Phase 3 — Sélection collaborative des leviers
+  | 'scoring'         // Phase 4 — Scoring (Benefits × Feasibility)
+  | 'commitment'      // Phase 5 — Décision Commitment / Additional / No Go
+  | 'synthesis';      // Phase 6 — Synthèse et clôture
+
+export type WorkshopStatus = 'draft' | 'in_progress' | 'completed';
+
+export interface WorkshopLeverSelection {
+  leverId: string;
+  selected: boolean;
+  benefits: number;       // 1–5
+  feasibility: number;    // 1–5
+  commitment: 'Commitment' | 'Additional Potential' | 'No Go';
+  comment: string;
+  addedDuringWorkshop: boolean;
+}
+
+export interface Workshop {
+  id: string;
+  projectId: string;
+  plantId: string;
+  name: string;
+  status: WorkshopStatus;
+  currentPhase: WorkshopPhase;
+  facilitator: string;
+  participants: string[];
+  date: string;
+  leverSelections: Record<string, WorkshopLeverSelection>;
+  notes: string;
+  createdAt: Date;
+  updatedAt: Date;
+}
+
+// ─── Workshop Session Types ───────────────────────────────────────────────────
 
 export type LeverStatus = 'pending' | 'validated' | 'debated' | 'rejected' | 'deferred';
 
