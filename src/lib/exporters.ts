@@ -110,40 +110,88 @@ export function exportBaselineToExcel(
   plants: { id: string; name: string }[],
   filename = 'baseline_export.xlsx'
 ) {
-  const plantHeaders = plants.map(p => p.name);
-  const headers = ['Cost Element', 'Baseline Group', ...plantHeaders];
+  // Explicit guard: raise a clear error if baselines is empty
+  if (!baselines || baselines.length === 0) {
+    throw new Error(
+      "Aucune baseline chargée. Renseignez les données dans la page Baseline avant d'exporter."
+    );
+  }
 
-  const costElements: CostElement[] = ['RM', 'PM', 'DLC', 'PILC', 'OVC', 'FC_Personal', 'Maintenance', 'OFC', 'RM_Losses', 'PM_Losses'];
+  const costElements: CostElement[] = [
+    'RM', 'PM', 'DLC', 'PILC', 'OVC', 'FC_Personal', 'Maintenance', 'OFC', 'RM_Losses', 'PM_Losses',
+  ];
 
-  const rows = costElements.map((el, rowIdx) => {
-    const excelRow = rowIdx + 2; // row 1 = headers
-    const groupTotal = baselines.reduce((s, b) => s + (b.costElements?.[el] ?? 0), 0);
+  // Disposition: Col A (1) = label, Col B (2) = Baseline Groupe (SUM formula), Col C+ = plants
+  const firstPlantColIdx = 3; // Col C (1-based)
+  const lastPlantColIdx  = firstPlantColIdx + plants.length - 1;
+  const dataStartRow     = 2; // Row 1 = headers (1-based)
+
+  // Utility: 1-based column index → Excel letter(s)
+  const col = (n: number): string => colLetter(n - 1);
+
+  const headers = ['Cost Element', 'Baseline Groupe', ...plants.map(p => p.name)];
+
+  // Data rows with SUM formula on Baseline Groupe column
+  const dataRows = costElements.map((el, i) => {
+    const excelRow = dataStartRow + i;
+    const groupFormula = plants.length > 0
+      ? { t: 'n' as const, v: baselines.reduce((s, b) => s + (b.costElements?.[el] ?? 0), 0),
+          f: `SUM(${col(firstPlantColIdx)}${excelRow}:${col(lastPlantColIdx)}${excelRow})` }
+      : 0;
     const plantValues = plants.map(p => {
-      // Match by plantId OR by composite id `${projectId}_${plantId}` (upsert fix compatibility)
       const b = baselines.find(
         b => b.plantId === p.id || b.id === `${b.projectId}_${p.id}`
       );
       return b?.costElements?.[el] ?? 0;
     });
-
-    // Column B = Baseline Group = SUM of plant columns
-    const firstPlantCol = colLetter(2);  // C
-    const lastPlantCol  = colLetter(1 + plants.length);
-    const sumFormula    = plants.length > 0
-      ? `SUM(${firstPlantCol}${excelRow}:${lastPlantCol}${excelRow})`
-      : undefined;
-
-    return [
-      COST_ELEMENT_LABELS[el],
-      sumFormula
-        ? { t: 'n' as const, v: groupTotal, f: sumFormula }
-        : groupTotal,
-      ...plantValues,
-    ];
+    return [COST_ELEMENT_LABELS[el], groupFormula, ...plantValues];
   });
 
-  const ws = XLSX.utils.aoa_to_sheet([headers, ...rows]);
-  applyNumberFormat(ws);
+  const lastDataRow        = dataStartRow + costElements.length - 1;
+  const totalCCRowN        = lastDataRow + 1;
+  const totalCostsRowN     = lastDataRow + 2;
+
+  // CC cost elements for Total CC formula
+  const CC_KEYS: CostElement[] = ['DLC', 'PILC', 'OVC', 'FC_Personal', 'Maintenance', 'OFC'];
+  const buildTotalCC = (colIdx: number) => ({
+    t: 'n' as const,
+    v: 0,
+    f: CC_KEYS.map(k => `${col(colIdx)}${dataStartRow + costElements.indexOf(k)}`).join('+'),
+  });
+
+  const RM_ROW = dataStartRow + costElements.indexOf('RM');
+  const PM_ROW = dataStartRow + costElements.indexOf('PM');
+  const buildTotalCosts = (colIdx: number) => ({
+    t: 'n' as const,
+    v: 0,
+    f: `${col(colIdx)}${RM_ROW}+${col(colIdx)}${PM_ROW}+${col(colIdx)}${totalCCRowN}`,
+  });
+
+  const totalCCRow = [
+    'Total CC in k€',
+    buildTotalCC(2),
+    ...plants.map((_, i) => buildTotalCC(firstPlantColIdx + i)),
+  ];
+
+  const totalCostsRow = [
+    'Total Costs in k€',
+    buildTotalCosts(2),
+    ...plants.map((_, i) => buildTotalCosts(firstPlantColIdx + i)),
+  ];
+
+  const ws = XLSX.utils.aoa_to_sheet([headers, ...dataRows, totalCCRow, totalCostsRow]);
+
+  // Apply #,##0 format to all numeric cells (skip header row)
+  const range = XLSX.utils.decode_range(ws['!ref'] || 'A1');
+  for (let R = 1; R <= range.e.r; R++) {
+    for (let C = 1; C <= range.e.c; C++) {
+      const addr = XLSX.utils.encode_cell({ r: R, c: C });
+      if (ws[addr]) ws[addr].z = '#,##0';
+    }
+  }
+
+  ws['!cols'] = [{ wch: 22 }, { wch: 16 }, ...plants.map(() => ({ wch: 14 }))];
+
   const wb = XLSX.utils.book_new();
   XLSX.utils.book_append_sheet(wb, ws, 'Baseline');
   XLSX.writeFile(wb, filename);

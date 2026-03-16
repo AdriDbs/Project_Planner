@@ -5,6 +5,7 @@ import { Sidebar } from './components/layout/Sidebar';
 import { Header } from './components/layout/Header';
 import { TutorialOverlay } from './components/tutorial/TutorialOverlay';
 import { WorkshopLauncher } from './components/workshop/WorkshopLauncher';
+import { WorkshopCoConstruction } from './components/workshop/WorkshopCoConstruction';
 import { Dashboard } from './pages/Dashboard';
 import { BaselinePage } from './pages/Baseline';
 import { LeversPage } from './pages/Levers';
@@ -17,6 +18,7 @@ import { AdminPage } from './pages/Admin';
 import { LeverLibraryPage } from './pages/LeverLibrary';
 import { ExportPage } from './pages/Export';
 import { WorkshopPage } from './pages/Workshop';
+import { WorkshopCoConstructionPage } from './pages/WorkshopPage';
 import { useProjectStore } from './store/projectStore';
 import { useWorkshopStore } from './store/workshopStore';
 
@@ -55,11 +57,20 @@ function WorkshopLauncherModal() {
 function AppLayout() {
   const location = useLocation();
   const isWorkshop = location.pathname === '/workshop';
+  const isWorkshopCo = location.pathname === '/workshop-coproduction';
 
   if (isWorkshop) {
     return (
       <Routes>
         <Route path="/workshop" element={<WorkshopPage />} />
+      </Routes>
+    );
+  }
+
+  if (isWorkshopCo) {
+    return (
+      <Routes>
+        <Route path="/workshop-coproduction" element={<WorkshopCoConstructionPage />} />
       </Routes>
     );
   }
@@ -90,12 +101,19 @@ function AppLayout() {
   );
 }
 
+function WorkshopCoConstructionOverlay() {
+  const { isCoConstructionMode } = useWorkshopStore();
+  if (!isCoConstructionMode) return null;
+  return <WorkshopCoConstruction />;
+}
+
 function App() {
   return (
     <BrowserRouter basename="/Project_Planner/">
       <AppLayout />
       <TutorialOverlay />
       <WorkshopLauncherModal />
+      <WorkshopCoConstructionOverlay />
       <Toaster
         position="top-right"
         toastOptions={{
