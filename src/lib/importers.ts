@@ -421,9 +421,18 @@ export function parseLeversExcel(
         const ws = wb.Sheets[wb.SheetNames[0]];
         const rows: Record<string, unknown>[] = XLSX.utils.sheet_to_json(ws);
 
+        // Auto-detect all savings year columns from the Excel headers so
+        // all years present in the file are captured regardless of project scope.
+        const allKeys = rows.length > 0 ? Object.keys(rows[0]) : [];
+        const detectedYears = allKeys
+          .filter(k => k.includes('Savings') && /\d{4}/.test(k))
+          .map(k => { const m = k.match(/(\d{4})/); return m ? parseInt(m[1]) : null; })
+          .filter((y): y is number => y !== null);
+        const allYears = detectedYears.length > 0 ? detectedYears : years;
+
         const levers: Partial<Lever>[] = rows.map((row) => {
           const savingsByYear: Record<string, number> = {};
-          years.forEach(y => {
+          allYears.forEach(y => {
             const key = Object.keys(row).find(k => k.includes('Savings') && k.includes(String(y)));
             if (key) savingsByYear[String(y)] = Number(row[key]) || 0;
           });

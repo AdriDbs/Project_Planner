@@ -37,7 +37,14 @@ export const useProjectStore = create<ProjectState>()(
       plants: [],
       tutorialActive: false,
       tutorialStep: 0,
-      setSelectedProject: (id) => set({ selectedProjectId: id, selectedPlantIds: [] }),
+      setSelectedProject: (id) => set((state) => {
+        const project = id ? state.projects.find(p => p.id === id) : null;
+        return {
+          selectedProjectId: id,
+          selectedPlantIds: [],
+          ...(project?.years?.length ? { selectedYears: project.years } : {}),
+        };
+      }),
       setSelectedPlants: (ids) => set({ selectedPlantIds: ids }),
       setSelectedYears: (years) => set({ selectedYears: years }),
       setLocale: (locale) => set({ locale }),

@@ -24,6 +24,11 @@ export function useProjects() {
       const currentSelectedId = useProjectStore.getState().selectedProjectId;
       if (currentSelectedId && !data.find(p => p.id === currentSelectedId)) {
         useProjectStore.getState().setSelectedProject(null);
+      } else if (currentSelectedId) {
+        const selectedProject = data.find(p => p.id === currentSelectedId);
+        if (selectedProject?.years?.length) {
+          useProjectStore.getState().setSelectedYears(selectedProject.years);
+        }
       }
       setLoading(false);
     }, (err) => {
