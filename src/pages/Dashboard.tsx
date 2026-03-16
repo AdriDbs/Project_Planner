@@ -37,8 +37,8 @@ export function Dashboard() {
       plantId: '',
       year: selectedYears[0] - 1,
       costElements: baselines.reduce((acc, b) => {
-        Object.entries(b.costElements).forEach(([k, v]) => {
-          (acc as any)[k] = ((acc as any)[k] || 0) + v;
+        Object.entries(b.costElements || {}).forEach(([k, v]) => {
+          (acc as any)[k] = ((acc as any)[k] || 0) + (v || 0);
         });
         return acc;
       }, {} as any),
@@ -53,10 +53,10 @@ export function Dashboard() {
     return plants.map(plant => {
       const plantLevers = levers.filter(l => l.plantId === plant.id && l.commitment === 'Commitment');
       const plantBaseline = baselines.find(b => b.plantId === plant.id);
-      const totalSavings = plantLevers.reduce((s, l) => s + l.netSavingsEUR, 0);
-      const baselineTotal = plantBaseline ? Object.values(plantBaseline.costElements).reduce((s, v) => s + v, 0) : 0;
+      const totalSavings = plantLevers.reduce((s, l) => s + (l.netSavingsEUR || 0), 0);
+      const baselineTotal = plantBaseline ? Object.values(plantBaseline.costElements || {}).reduce((s, v) => s + (v || 0), 0) : 0;
       const pct = baselineTotal > 0 ? totalSavings / baselineTotal : 0;
-      const capex = plantLevers.reduce((s, l) => s + l.capexEUR, 0);
+      const capex = plantLevers.reduce((s, l) => s + (l.capexEUR || 0), 0);
       return { plant, totalSavings, pct, capex };
     });
   }, [plants, levers, baselines]);

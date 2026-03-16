@@ -27,10 +27,10 @@ export function CapexOpexPage() {
         return startYear === year;
       });
 
-      const capexTotal = yearLevers.reduce((s, l) => s + l.capexEUR, 0);
-      const capexApproved = yearLevers.reduce((s, l) => s + l.approvedCapexEUR, 0);
+      const capexTotal = yearLevers.reduce((s, l) => s + (l.capexEUR || 0), 0);
+      const capexApproved = yearLevers.reduce((s, l) => s + (l.approvedCapexEUR || 0), 0);
       const capexRequired = capexTotal - capexApproved;
-      const oneOffOpex = yearLevers.reduce((s, l) => s + l.oneOffOpexEUR, 0);
+      const oneOffOpex = yearLevers.reduce((s, l) => s + (l.oneOffOpexEUR || 0), 0);
 
       cumTotal += capexTotal;
       cumApproved += capexApproved;
@@ -56,9 +56,9 @@ export function CapexOpexPage() {
 
   const globalCapex = {
     total: agg.commitCapex,
-    approved: levers.filter(l => l.commitment === 'Commitment').reduce((s, l) => s + l.approvedCapexEUR, 0),
-    oneOff: levers.filter(l => l.commitment === 'Commitment').reduce((s, l) => s + l.oneOffOpexEUR, 0),
-    recurring: levers.filter(l => l.commitment === 'Commitment').reduce((s, l) => s + l.recurringOpexEUR, 0),
+    approved: levers.filter(l => l.commitment === 'Commitment').reduce((s, l) => s + (l.approvedCapexEUR || 0), 0),
+    oneOff: levers.filter(l => l.commitment === 'Commitment').reduce((s, l) => s + (l.oneOffOpexEUR || 0), 0),
+    recurring: levers.filter(l => l.commitment === 'Commitment').reduce((s, l) => s + (l.recurringOpexEUR || 0), 0),
   };
 
   if (!selectedProjectId) {

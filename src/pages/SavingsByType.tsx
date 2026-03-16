@@ -24,11 +24,11 @@ export function SavingsByTypePage() {
       const addLevers = agg.additional.filter(l => l.improvementStructure === structure);
       const fullLevers = [...commitLevers, ...addLevers];
 
-      const commitNetSavings = commitLevers.reduce((s, l) => s + l.netSavingsEUR, 0);
-      const additionalNetSavings = addLevers.reduce((s, l) => s + l.netSavingsEUR, 0);
-      const fullNetSavings = fullLevers.reduce((s, l) => s + l.netSavingsEUR, 0);
-      const commitCapex = commitLevers.reduce((s, l) => s + l.capexEUR, 0);
-      const fullCapex = fullLevers.reduce((s, l) => s + l.capexEUR, 0);
+      const commitNetSavings = commitLevers.reduce((s, l) => s + (l.netSavingsEUR || 0), 0);
+      const additionalNetSavings = addLevers.reduce((s, l) => s + (l.netSavingsEUR || 0), 0);
+      const fullNetSavings = fullLevers.reduce((s, l) => s + (l.netSavingsEUR || 0), 0);
+      const commitCapex = commitLevers.reduce((s, l) => s + (l.capexEUR || 0), 0);
+      const fullCapex = fullLevers.reduce((s, l) => s + (l.capexEUR || 0), 0);
 
       return { structure, commitNetSavings, additionalNetSavings, fullNetSavings, commitCapex, fullCapex };
     }).filter(d => d.fullNetSavings !== 0 || d.fullCapex !== 0);
