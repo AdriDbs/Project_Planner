@@ -8,12 +8,14 @@ import {
 } from 'lucide-react';
 import type { LucideIcon } from 'lucide-react';
 import { useProjectStore } from '../../store/projectStore';
+import { useWorkshopStore } from '../../store/workshopStore';
 
 type NavItem = {
-  to: string;
+  to?: string;
   icon: LucideIcon;
   label: string;
   exact?: boolean;
+  onClick?: () => void;
 };
 
 type NavGroup = {
@@ -67,7 +69,7 @@ const NAV_SECTIONS: NavSection[] = [
       defaultOpen: false,
       items: [
         { to: '/export', icon: Download, label: 'Export Excel' },
-        { to: '/workshop', icon: Users2, label: 'Workshop Client' },
+        { icon: Users2, label: 'Workshop Client' },
       ],
     },
   },
@@ -77,7 +79,7 @@ const NAV_SECTIONS: NavSection[] = [
   },
 ];
 
-// Flat list of all leaf nav items (used in collapsed mode)
+// Flat list of all leaf nav items (used in collapsed mode) — excludes action-only items
 const ALL_NAV_ITEMS: NavItem[] = NAV_SECTIONS.flatMap(s =>
   s.type === 'item' ? [s.item] : s.group.items
 );
@@ -102,13 +104,14 @@ function saveGroupStates(states: Record<string, boolean>) {
   }
 }
 
-function NavGroupSection({ group, openState, onToggle }: {
+function NavGroupSection({ group, openState, onToggle, onWorkshopClient }: {
   group: NavGroup;
   openState: boolean;
   onToggle: () => void;
+  onWorkshopClient?: () => void;
 }) {
   const location = useLocation();
-  const hasActiveChild = group.items.some(i => location.pathname === i.to);
+  const hasActiveChild = group.items.some(i => i.to && location.pathname === i.to);
 
   // Auto-expand if a child is active
   useEffect(() => {
@@ -141,23 +144,34 @@ function NavGroupSection({ group, openState, onToggle }: {
         }`}
       >
         <div className="pl-2 space-y-0.5 border-l border-white/10 ml-4">
-          {group.items.map(item => (
-            <NavLink
-              key={item.to}
-              to={item.to}
-              end={item.exact}
-              className={({ isActive }) =>
-                `nav-item text-xs py-2 ${
-                  isActive
-                    ? 'bg-white/15 text-white'
-                    : 'text-white/60 hover:bg-white/10 hover:text-white'
-                }`
-              }
-            >
-              <item.icon size={15} />
-              <span className="flex-1">{item.label}</span>
-            </NavLink>
-          ))}
+          {group.items.map(item =>
+            item.to ? (
+              <NavLink
+                key={item.to}
+                to={item.to}
+                end={item.exact}
+                className={({ isActive }) =>
+                  `nav-item text-xs py-2 ${
+                    isActive
+                      ? 'bg-white/15 text-white'
+                      : 'text-white/60 hover:bg-white/10 hover:text-white'
+                  }`
+                }
+              >
+                <item.icon size={15} />
+                <span className="flex-1">{item.label}</span>
+              </NavLink>
+            ) : (
+              <button
+                key={item.label}
+                onClick={onWorkshopClient}
+                className="nav-item text-xs py-2 w-full text-white/60 hover:bg-white/10 hover:text-white"
+              >
+                <item.icon size={15} />
+                <span className="flex-1 text-left">{item.label}</span>
+              </button>
+            )
+          )}
         </div>
       </div>
     </div>
@@ -166,6 +180,7 @@ function NavGroupSection({ group, openState, onToggle }: {
 
 export function Sidebar() {
   const { startTutorial } = useProjectStore();
+  const { setLauncherOpen } = useWorkshopStore();
 
   const [isCollapsed, setIsCollapsed] = useState<boolean>(() => {
     try { return localStorage.getItem(COLLAPSED_KEY) === 'true'; }
@@ -234,23 +249,34 @@ export function Sidebar() {
         {isCollapsed ? (
           /* Collapsed: flat icon list */
           <div className="space-y-1">
-            {ALL_NAV_ITEMS.map(item => (
-              <NavLink
-                key={item.to}
-                to={item.to}
-                end={item.exact}
-                title={item.label}
-                className={({ isActive }) =>
-                  `flex items-center justify-center p-2.5 rounded-lg transition-colors ${
-                    isActive
-                      ? 'bg-white/15 text-white'
-                      : 'text-white/60 hover:bg-white/10 hover:text-white'
-                  }`
-                }
-              >
-                <item.icon size={18} />
-              </NavLink>
-            ))}
+            {ALL_NAV_ITEMS.map(item =>
+              item.to ? (
+                <NavLink
+                  key={item.to}
+                  to={item.to}
+                  end={item.exact}
+                  title={item.label}
+                  className={({ isActive }) =>
+                    `flex items-center justify-center p-2.5 rounded-lg transition-colors ${
+                      isActive
+                        ? 'bg-white/15 text-white'
+                        : 'text-white/60 hover:bg-white/10 hover:text-white'
+                    }`
+                  }
+                >
+                  <item.icon size={18} />
+                </NavLink>
+              ) : (
+                <button
+                  key={item.label}
+                  title={item.label}
+                  onClick={() => setLauncherOpen(true)}
+                  className="flex items-center justify-center p-2.5 rounded-lg transition-colors text-white/60 hover:bg-white/10 hover:text-white w-full"
+                >
+                  <item.icon size={18} />
+                </button>
+              )
+            )}
           </div>
         ) : (
           /* Expanded: full grouped nav */
@@ -260,7 +286,7 @@ export function Sidebar() {
               return (
                 <NavLink
                   key={item.to}
-                  to={item.to}
+                  to={item.to!}
                   end={item.exact}
                   className={({ isActive }) =>
                     `nav-item ${isActive ? 'bg-white/15 text-white' : 'text-white/70 hover:bg-white/10 hover:text-white'}`
@@ -279,6 +305,7 @@ export function Sidebar() {
                 group={group}
                 openState={groupStates[group.label] ?? group.defaultOpen}
                 onToggle={() => toggleGroup(group.label)}
+                onWorkshopClient={() => setLauncherOpen(true)}
               />
             );
           })
