@@ -195,7 +195,7 @@ function ImportFromLibraryModal({ projectId, projectLevers, plants, onClose, onI
 
 export function LeversPage() {
   const { selectedProjectId, selectedYears, locale } = useProjectStore();
-  const { levers, loading, saving, createLever, updateLever, deleteLever, importLevers } = useLevers(selectedProjectId);
+  const { levers, loading, saving, createLever, updateLever, deleteLever, deleteAllLevers, importLevers } = useLevers(selectedProjectId);
   const { plants } = usePlants(selectedProjectId);
   const { instantiateInProject, libraryLevers } = useLeverLibrary();
 
@@ -360,6 +360,17 @@ export function LeversPage() {
     }
   };
 
+  const handleDeleteAll = async () => {
+    if (!levers.length) return;
+    if (!confirm(`Supprimer tous les ${levers.length} leviers de ce projet ? Cette action est irréversible.`)) return;
+    try {
+      await deleteAllLevers(levers);
+      toast.success('Tous les leviers ont été supprimés');
+    } catch {
+      toast.error('Erreur lors de la suppression');
+    }
+  };
+
   const handleImport = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (!file || !selectedProjectId) return;
@@ -453,6 +464,14 @@ export function LeversPage() {
             >
               <BookOpen size={13} />
               Importer depuis la bibliothèque
+            </button>
+            <button
+              onClick={handleDeleteAll}
+              disabled={levers.length === 0}
+              className="btn-ghost flex items-center gap-2 text-xs px-3 text-red-600 hover:bg-red-50 disabled:opacity-40"
+            >
+              <Trash2 size={13} />
+              Supprimer tous
             </button>
             <label className="btn-ghost flex items-center gap-2 cursor-pointer text-xs px-3">
               <Upload size={13} />
