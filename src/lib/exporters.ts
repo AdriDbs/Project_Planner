@@ -2,6 +2,7 @@ import * as XLSX from 'xlsx';
 import type { Lever } from '../types/lever';
 import type { Baseline, CostElement } from '../types/baseline';
 import { COST_ELEMENT_LABELS } from '../types/baseline';
+import type { BaselineMatrix, BaselineVolumes } from '../types/baseline';
 
 export function exportLeversToExcel(levers: Lever[], years: number[], filename = 'levers_export.xlsx') {
   const headers = [
@@ -36,6 +37,10 @@ export function exportLeversToExcel(levers: Lever[], years: number[], filename =
   XLSX.writeFile(wb, filename);
 }
 
+// ---------------------------------------------------------------------------
+// Legacy baseline export (old per-plant format)
+// ---------------------------------------------------------------------------
+
 export function exportBaselineToExcel(
   baselines: Baseline[],
   plants: { id: string; name: string }[],
@@ -59,4 +64,110 @@ export function exportBaselineToExcel(
   const wb = XLSX.utils.book_new();
   XLSX.utils.book_append_sheet(wb, ws, 'Baseline');
   XLSX.writeFile(wb, filename);
+}
+
+// ---------------------------------------------------------------------------
+// New v2 baseline exports — 4 separate sheets in one workbook
+// ---------------------------------------------------------------------------
+
+interface BaselineV2ExportConfig {
+  costElement: BaselineMatrix | null;
+  department: BaselineMatrix | null;
+  fte: BaselineMatrix | null;
+  volumes: BaselineVolumes | null;
+  filename?: string;
+}
+
+export function exportBaselineV2ToExcel(config: BaselineV2ExportConfig) {
+  const { costElement, department, fte, volumes } = config;
+  const filename = config.filename ?? 'baseline_export.xlsx';
+  const wb = XLSX.utils.book_new();
+
+  // Sheet: Baseline - Cost Element
+  if (costElement) {
+    const ws = buildMatrixSheet(costElement, 'Cost structure / Cost element', false);
+    XLSX.utils.book_append_sheet(wb, ws, 'Baseline - Cost Element');
+  } else {
+    const ws = XLSX.utils.aoa_to_sheet([['No data']]);
+    XLSX.utils.book_append_sheet(wb, ws, 'Baseline - Cost Element');
+  }
+
+  // Sheet: Baseline - Department
+  if (department) {
+    const ws = buildMatrixSheet(department, 'Cost structure / Department', true);
+    XLSX.utils.book_append_sheet(wb, ws, 'Baseline - Department');
+  } else {
+    const ws = XLSX.utils.aoa_to_sheet([['No data']]);
+    XLSX.utils.book_append_sheet(wb, ws, 'Baseline - Department');
+  }
+
+  // Sheet: Baseline - FTE
+  if (fte) {
+    const ws = buildMatrixSheet(fte, 'Cost structure / Department (FTE)', true);
+    XLSX.utils.book_append_sheet(wb, ws, 'Baseline - FTE');
+  } else {
+    const ws = XLSX.utils.aoa_to_sheet([['No data']]);
+    XLSX.utils.book_append_sheet(wb, ws, 'Baseline - FTE');
+  }
+
+  // Sheet: Baseline - Volumes
+  if (volumes) {
+    const ws = buildVolumesSheet(volumes);
+    XLSX.utils.book_append_sheet(wb, ws, 'Baseline - Volumes');
+  } else {
+    const ws = XLSX.utils.aoa_to_sheet([['No data']]);
+    XLSX.utils.book_append_sheet(wb, ws, 'Baseline - Volumes');
+  }
+
+  XLSX.writeFile(wb, filename);
+}
+
+/**
+ * Build a sheet for cost_element / department / fte_department matrix.
+ * departmentStyle: true = insert an empty row 1 before the header (department format).
+ */
+function buildMatrixSheet(matrix: BaselineMatrix, headerLabel: string, departmentStyle: boolean): XLSX.WorkSheet {
+  const { plants, rows, referenceLabel } = matrix;
+  const aoa: (string | number | null)[][] = [];
+
+  if (departmentStyle) {
+    // Row 0: empty separator
+    aoa.push([null]);
+  }
+
+  // Header row: label | Baseline | Plant1 | Plant2 | ...
+  aoa.push([headerLabel, 'Baseline', ...plants]);
+
+  // Reference label row: empty | referenceLabel | empty | ...
+  aoa.push([null, referenceLabel, ...plants.map(() => null)]);
+
+  // Data rows
+  for (const row of rows) {
+    if (row.isCalculated) continue; // add calculated at end
+    // Values are in euros raw → export in euros (k€ display is UI-only)
+    aoa.push([row.label, row.total, ...plants.map(p => row.values[p] ?? 0)]);
+  }
+
+  // Calculated rows
+  for (const row of rows) {
+    if (!row.isCalculated) continue;
+    aoa.push([row.label, row.total, ...plants.map(p => row.values[p] ?? 0)]);
+  }
+
+  return XLSX.utils.aoa_to_sheet(aoa);
+}
+
+function buildVolumesSheet(volumes: BaselineVolumes): XLSX.WorkSheet {
+  const { rows, referenceLabel } = volumes;
+
+  const aoa: (string | number | null)[][] = [
+    ['Platform', 'Plant', referenceLabel],
+    ...rows.map(r => [r.platform, r.plant, r.volume]),
+  ];
+
+  // Total row
+  const totalVolume = rows.reduce((s, r) => s + r.volume, 0);
+  aoa.push([null, 'Total', totalVolume]);
+
+  return XLSX.utils.aoa_to_sheet(aoa);
 }
