@@ -28,7 +28,7 @@ export function OrganizationPage() {
 
       // Baseline FTE from baselines
       const deptKey = dept.replace(' ', '_') as Department;
-      const baselineFTE = baselines.reduce((s, b) => s + (b.fteByDepartment[deptKey] || 0), 0);
+      const baselineFTE = baselines.reduce((s, b) => s + ((b.fteByDepartment?.[deptKey]) || 0), 0);
 
       const commitFTE = commitLevers.reduce((s, l) => s + (l.fte || 0), 0);
       const fullFTE = fullLevers.reduce((s, l) => s + (l.fte || 0), 0);

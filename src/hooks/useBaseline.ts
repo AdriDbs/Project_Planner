@@ -18,7 +18,11 @@ export function useBaseline(projectId: string | null) {
     if (!projectId) { setLoading(false); return; }
     const q = query(collection(db, 'baselines'), where('projectId', '==', projectId));
     const unsub = onSnapshot(q, (snap) => {
-      const data = snap.docs.map(d => ({ id: d.id, ...d.data() } as Baseline));
+      // Filter out v2 baseline documents (BaselineMatrix/BaselineVolumes have `rows` array, not `costElements`)
+      const data = snap.docs
+        .map(d => ({ id: d.id, ...d.data() } as any))
+        .filter(d => d.costElements && !Array.isArray(d.rows))
+        .map(d => d as Baseline);
       setBaselines(data);
       setLoading(false);
     }, (err) => {

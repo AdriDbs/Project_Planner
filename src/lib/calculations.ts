@@ -24,15 +24,15 @@ export function aggregateByCommitment(levers: Lever[], commitment: 'Commitment' 
 }
 
 export function totalSavings(levers: Lever[], currency: 'LC' | 'EUR' = 'EUR'): number {
-  return levers.reduce((sum, l) => sum + (currency === 'EUR' ? l.fyTotalSavingsEUR : l.fyTotalSavingsLC), 0);
+  return levers.reduce((sum, l) => sum + (currency === 'EUR' ? (l.fyTotalSavingsEUR || 0) : (l.fyTotalSavingsLC || 0)), 0);
 }
 
 export function totalNetSavings(levers: Lever[], currency: 'LC' | 'EUR' = 'EUR'): number {
-  return levers.reduce((sum, l) => sum + (currency === 'EUR' ? l.netSavingsEUR : l.netSavingsLC), 0);
+  return levers.reduce((sum, l) => sum + (currency === 'EUR' ? (l.netSavingsEUR || 0) : (l.netSavingsLC || 0)), 0);
 }
 
 export function totalCapex(levers: Lever[], currency: 'LC' | 'EUR' = 'EUR'): number {
-  return levers.reduce((sum, l) => sum + (currency === 'EUR' ? l.capexEUR : l.capexLC), 0);
+  return levers.reduce((sum, l) => sum + (currency === 'EUR' ? (l.capexEUR || 0) : (l.capexLC || 0)), 0);
 }
 
 export function totalFTE(levers: Lever[]): number {
@@ -46,7 +46,7 @@ export function savingsByYear(levers: Lever[], year: string): number {
 export function savingsByImprovementStructure(levers: Lever[]): Record<string, number> {
   return levers.reduce((acc, l) => {
     const key = l.improvementStructure;
-    acc[key] = (acc[key] || 0) + l.netSavingsEUR;
+    acc[key] = (acc[key] || 0) + (l.netSavingsEUR || 0);
     return acc;
   }, {} as Record<string, number>);
 }
@@ -54,13 +54,14 @@ export function savingsByImprovementStructure(levers: Lever[]): Record<string, n
 export function savingsByDepartment(levers: Lever[]): Record<string, number> {
   return levers.reduce((acc, l) => {
     const key = l.department;
-    acc[key] = (acc[key] || 0) + l.netSavingsEUR;
+    acc[key] = (acc[key] || 0) + (l.netSavingsEUR || 0);
     return acc;
   }, {} as Record<string, number>);
 }
 
 export function totalBaselineCost(baseline: Baseline): number {
-  return Object.values(baseline.costElements).reduce((sum, v) => sum + v, 0);
+  if (!baseline.costElements) return 0;
+  return Object.values(baseline.costElements).reduce((sum, v) => sum + (v || 0), 0);
 }
 
 export function savingsPercentVsBaseline(savings: number, baselineCost: number): number {
