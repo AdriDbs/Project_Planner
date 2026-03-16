@@ -8,6 +8,7 @@ import * as XLSX from 'xlsx-js-style';
 import type { Project, Plant } from '../types/project';
 import type { Lever } from '../types/lever';
 import type { Baseline, CostElement } from '../types/baseline';
+import type { BaselineMatrix, BaselineVolumes } from '../types/baseline';
 import {
   IMPROVEMENT_STRUCTURES_ORDERED,
   DEPARTMENTS_ORDERED,
@@ -1222,10 +1223,17 @@ export interface ExportConfig {
   baselines: Baseline[];
   years: number[];
   filename?: string;
+  // Optional v2 baselines — if provided, adds 4 extra sheets
+  baselineV2?: {
+    costElement: BaselineMatrix | null;
+    department: BaselineMatrix | null;
+    fte: BaselineMatrix | null;
+    volumes: BaselineVolumes | null;
+  };
 }
 
 export function exportProjectToExcel(config: ExportConfig): void {
-  const { project, plants, levers, baselines, years } = config;
+  const { project, plants, levers, baselines, years, baselineV2 } = config;
   const filename = (config.filename || `${project.name}_ProjectPlanner`)
     .replace(/[^a-zA-Z0-9_\-. ]/g, '_')
     .trim() + '.xlsx';
@@ -1260,6 +1268,124 @@ export function exportProjectToExcel(config: ExportConfig): void {
   const sheet9 = buildOutOfScopeSheet(levers);
   XLSX.utils.book_append_sheet(wb, sheet9, 'Out of Scope');
 
+  // Optional v2 baseline sheets (4 additional tabs)
+  if (baselineV2) {
+    const bv2ce = buildBaselineV2MatrixSheet(baselineV2.costElement, 'Cost structure / Cost element', false);
+    XLSX.utils.book_append_sheet(wb, bv2ce, 'Baseline - Cost Element');
+
+    const bv2dept = buildBaselineV2MatrixSheet(baselineV2.department, 'Cost structure / Department', true);
+    XLSX.utils.book_append_sheet(wb, bv2dept, 'Baseline - Department');
+
+    const bv2fte = buildBaselineV2MatrixSheet(baselineV2.fte, 'Cost structure / Department (FTE)', true);
+    XLSX.utils.book_append_sheet(wb, bv2fte, 'Baseline - FTE');
+
+    const bv2vol = buildBaselineV2VolumesSheet(baselineV2.volumes);
+    XLSX.utils.book_append_sheet(wb, bv2vol, 'Baseline - Volumes');
+  }
+
   // Write and trigger download
   XLSX.writeFile(wb, filename, { bookType: 'xlsx', type: 'binary' });
+}
+
+// ---------------------------------------------------------------------------
+// V2 Baseline sheet builders (formatted with xlsx-js-style)
+// ---------------------------------------------------------------------------
+
+function buildBaselineV2MatrixSheet(
+  matrix: BaselineMatrix | null,
+  headerLabel: string,
+  departmentStyle: boolean,
+): XLSX.WorkSheet {
+  const ws = makeWs();
+
+  if (!matrix) {
+    setVal(ws, 0, 0, 'No data', S.empty);
+    setRange(ws, 0, 0);
+    return ws;
+  }
+
+  const { plants, rows, referenceLabel } = matrix;
+  let ri = 0;
+
+  if (departmentStyle) {
+    setVal(ws, ri++, 0, '', S.empty); // empty row 0
+  }
+
+  // Header row
+  setVal(ws, ri, 0, headerLabel, S.headerDark);
+  setVal(ws, ri, 1, 'Baseline', S.headerDark);
+  plants.forEach((p, pi) => setVal(ws, ri, 2 + pi, p, S.headerDark));
+  setRowHeight(ws, ri, 22);
+  ri++;
+
+  // Reference label row
+  setVal(ws, ri, 0, '', S.empty);
+  setVal(ws, ri, 1, referenceLabel, S.headerLight);
+  plants.forEach((_, pi) => setVal(ws, ri, 2 + pi, '', S.empty));
+  ri++;
+
+  // Data rows
+  const dataRows = rows.filter(r => !r.isCalculated);
+  dataRows.forEach((row, di) => {
+    const st = di % 2 === 0 ? S.rowEven : S.rowOdd;
+    const stR = di % 2 === 0 ? S.rowEvenRight : S.rowOddRight;
+    setVal(ws, ri, 0, row.label, st);
+    setVal(ws, ri, 1, n(row.total), stR, '#,##0');
+    plants.forEach((p, pi) => setVal(ws, ri, 2 + pi, n(row.values[p]), stR, '#,##0'));
+    ri++;
+  });
+
+  // Calculated (total) rows
+  const calcRows = rows.filter(r => r.isCalculated);
+  calcRows.forEach(row => {
+    const isFinalTotal = row.label === 'Total Costs in k€';
+    const st = isFinalTotal ? S.total : S.total;
+    const stR = S.totalRight;
+    setVal(ws, ri, 0, row.label, st);
+    setVal(ws, ri, 1, n(row.total), stR, '#,##0');
+    plants.forEach((p, pi) => setVal(ws, ri, 2 + pi, n(row.values[p]), stR, '#,##0'));
+    ri++;
+  });
+
+  setRange(ws, ri, 1 + plants.length);
+  setCols(ws, [22, 16, ...plants.map(() => 14)]);
+  return ws;
+}
+
+function buildBaselineV2VolumesSheet(volumes: BaselineVolumes | null): XLSX.WorkSheet {
+  const ws = makeWs();
+
+  if (!volumes) {
+    setVal(ws, 0, 0, 'No data', S.empty);
+    setRange(ws, 0, 0);
+    return ws;
+  }
+
+  const { rows, referenceLabel } = volumes;
+
+  // Header
+  setVal(ws, 0, 0, 'Platform', S.headerDark);
+  setVal(ws, 0, 1, 'Plant', S.headerDark);
+  setVal(ws, 0, 2, referenceLabel, S.headerDark);
+  setRowHeight(ws, 0, 22);
+
+  // Data rows
+  rows.forEach((row, ri) => {
+    const st = ri % 2 === 0 ? S.rowEven : S.rowOdd;
+    const stR = ri % 2 === 0 ? S.rowEvenRight : S.rowOddRight;
+    setVal(ws, ri + 1, 0, row.platform, st);
+    setVal(ws, ri + 1, 1, row.plant, st);
+    setVal(ws, ri + 1, 2, n(row.volume), stR, '#,##0');
+  });
+
+  // Total row
+  const totalRow = rows.length + 1;
+  const totalVolume = rows.reduce((s, r) => s + r.volume, 0);
+  setVal(ws, totalRow, 0, '', S.total);
+  setVal(ws, totalRow, 1, 'Total', S.total);
+  setVal(ws, totalRow, 2, totalVolume, S.totalRight, '#,##0');
+
+  setRange(ws, totalRow, 2);
+  setCols(ws, [22, 20, 16]);
+  return ws;
 }

@@ -9,6 +9,7 @@ import { useProjectStore } from '../store/projectStore';
 import { useProjects, usePlants } from '../hooks/useProjects';
 import { useLevers } from '../hooks/useLevers';
 import { useBaseline } from '../hooks/useBaseline';
+import { useBaselineV2 } from '../hooks/useBaselineV2';
 import { exportProjectToExcel } from '../lib/excelExporter';
 import type { Lever } from '../types/lever';
 
@@ -471,7 +472,7 @@ function Step3Preview({ selectedLevers, plants, baselines, onExport, exporting, 
 
       {/* Sheets list */}
       <div className="bg-white rounded-xl border border-gray-200 p-4">
-        <p className="text-sm font-semibold text-gray-700 mb-3">Onglets générés (9)</p>
+        <p className="text-sm font-semibold text-gray-700 mb-3">Onglets générés (9 + 4 Baseline)</p>
         <div className="grid grid-cols-3 gap-2">
           {[
             'Performance Levers',
@@ -483,6 +484,10 @@ function Step3Preview({ selectedLevers, plants, baselines, onExport, exporting, 
             'Phasing Organization',
             'Phasing CAPEX & OPEX',
             'Out of Scope',
+            'Baseline - Cost Element',
+            'Baseline - Department',
+            'Baseline - FTE',
+            'Baseline - Volumes',
           ].map(sheet => (
             <div key={sheet} className="flex items-center gap-1.5 text-xs text-gray-600">
               <CheckCircle2 size={12} className="text-green-500 flex-shrink-0" />
@@ -560,6 +565,7 @@ export function ExportPage() {
   const { plants } = usePlants(projectId || null);
   const { levers, loading: leversLoading } = useLevers(projectId || null);
   const { baselines } = useBaseline(projectId || null);
+  const { baselines: baselinesV2 } = useBaselineV2(projectId || null);
 
   // Auto-select all inScope levers when project changes
   React.useEffect(() => {
@@ -592,6 +598,12 @@ export function ExportPage() {
         baselines,
         years,
         filename: fname,
+        baselineV2: {
+          costElement: baselinesV2.cost_element as any,
+          department: baselinesV2.department as any,
+          fte: baselinesV2.fte_department as any,
+          volumes: baselinesV2.volumes as any,
+        },
       });
       setExportedFilename(fname + '.xlsx');
       setExportDone(true);
