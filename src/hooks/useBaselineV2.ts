@@ -91,7 +91,7 @@ export function useBaselineV2(projectId: string | null) {
   const saveBaseline = useCallback(async (
     pProjectId: string,
     type: BaselineType,
-    data: Omit<BaselineEntry, 'id' | 'createdAt' | 'updatedAt'>,
+    data: Omit<BaselineMatrix, 'id' | 'createdAt' | 'updatedAt'> | Omit<BaselineVolumes, 'id' | 'createdAt' | 'updatedAt'>,
   ) => {
     const docId = makeDocId(pProjectId, type);
     const docRef = doc(db, 'baselines', docId);
